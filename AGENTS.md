@@ -65,3 +65,18 @@ Example (substitute the installed editor path):
 ```
 
 This is a temporary, machine-specific development workaround. It must not become an architectural dependency or constrain the deterministic gameplay simulation. The launch argument overrides the current configured DX12 default; this documentation does not change renderer configuration.
+
+## Validation
+
+Codex automation runs under the restricted `codexsandboxoffline` identity. Direct
+`UnrealEditor-Cmd` automation can fail because the normal user Zen/DDC and shader
+working directories are not writable by that identity. Do not use the old raw
+Unreal automation command. After simulation or gameplay changes, run:
+
+```powershell
+.\Scripts\RunTests.ps1
+```
+
+Do not report a milestone as test-passing unless this complete suite executes
+successfully. Do not work around failures by weakening tests. Human/manual
+gameplay validation remains separate from automated validation.
