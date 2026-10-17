@@ -11,13 +11,13 @@ void EnterActive(FMatchState& S) { StartAttack(S); for (int32 I=1; I<FFightingSi
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAttackLifecycleTest, "ProjW.Simulation.Attack.LightLifecycle", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAttackLifecycleTest::RunTest(const FString&)
 {
-    FMatchState S; S.Fighter1.PositionX = -100 * FFightingSimulation::SubunitsPerWorldUnit; S.Fighter2.PositionX = -40 * FFightingSimulation::SubunitsPerWorldUnit; S.Fighter2.Facing = EFighterFacing::Right;
+    FMatchState S; S.Fighter1.PositionX = -100 * FFightingSimulation::SubunitsPerWorldUnit; S.Fighter2.PositionX = 300 * FFightingSimulation::SubunitsPerWorldUnit; S.Fighter2.Facing = EFighterFacing::Left;
     FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {});
     TestTrue(TEXT("startup entry"), S.Fighter1.CurrentState == EFighterState::LightAttackStartup); TestEqual(TEXT("startup frame"), S.Fighter1.StateFrame, uint32(0));
     for (int32 I=1; I<FFightingSimulation::LightStartupFrames; ++I) { FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {}); TestEqual(TEXT("startup timing"), S.Fighter1.CurrentState, EFighterState::LightAttackStartup); TestEqual(TEXT("startup frame"), S.Fighter1.StateFrame, uint32(I)); }
     FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {}); TestTrue(TEXT("active entry"), S.Fighter1.CurrentState == EFighterState::LightAttackActive); TestEqual(TEXT("active frame"), S.Fighter1.StateFrame, uint32(0));
-    FSimBox Box; TestTrue(TEXT("active hitbox"), FFightingSimulation::GetLightHitbox(S.Fighter1, Box)); TestEqual(TEXT("one hit"), S.HitEventCount, uint32(1));
-    for (int32 I=1; I<FFightingSimulation::LightActiveFrames; ++I) { FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {}); TestTrue(TEXT("active state"), S.Fighter1.CurrentState == EFighterState::LightAttackActive); TestEqual(TEXT("no duplicate"), S.HitEventCount, uint32(1)); }
+    FSimBox Box; TestTrue(TEXT("active hitbox"), FFightingSimulation::GetLightHitbox(S.Fighter1, Box)); TestEqual(TEXT("complete miss"), S.HitEventCount, uint32(0));
+    for (int32 I=1; I<FFightingSimulation::LightActiveFrames; ++I) { FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {}); TestTrue(TEXT("active state"), S.Fighter1.CurrentState == EFighterState::LightAttackActive); TestEqual(TEXT("still miss"), S.HitEventCount, uint32(0)); }
     for (int32 I=0; I<FFightingSimulation::LightRecoveryFrames; ++I) FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {});
     FFightingSimulation::SimulateFrame(S, B(EFighterInputButton::Light), {});
     TestTrue(TEXT("returns neutral"), S.Fighter1.CurrentState == EFighterState::Idle); return true;

@@ -1,0 +1,11 @@
+# Milestone 4B: deterministic Light damage and grounded hit reaction
+
+Milestone 4B adds `LightDamage=50`, `LightHitstopFrames=6`, `LightHitstunFrames=14`, and `LightKnockbackSpeed=6144` subunits/frame. A grounded successful Light hit subtracts damage once, clamps health at zero, and records pending grounded hitstun/knockback.
+
+The hit-registration call is H. Damage and hitstop are applied on H. The next six calls are frozen calls with unchanged positions, velocities, states, and StateFrame values; input edge history still advances so hitstop inputs are consumed. The following call enters Hitstun at StateFrame 0 and begins committed world-space knockback. Hitstun occupies StateFrame 0..13 and exits on the following call. Stage bounds clamp knockback without bounce. Knockback direction is computed away from the attacker at registration and is not recomputed from later facing.
+
+Authoritative state adds `HitstopFramesRemaining`, `bPendingHitReaction`, and `PendingKnockbackVelocityX` to each fighter. `bPendingHitReaction` is an explicit post-hitstop indicator; `StateFrame` is the sole Hitstun timer. Existing single-hit protection remains. A Light overlap is a valid 4B hit only when the defender is grounded; airborne overlaps do not consume the attack or create an event and may be hit later if grounded.
+
+Frame order is input-edge bookkeeping, hitstop freeze or ordinary fighter progression, deterministic movement, geometry generation, collect both successful grounded overlaps, apply damage and pending reactions, grounded/stage resolution, facing update, and global SimulationFrame increment. Grounded push is skipped while either fighter has hitstop remaining, so frozen positions cannot move. During Hitstun, committed knockback and stage bounds apply. Unreal physics and presentation remain non-authoritative.
+
+Focused tests cover damage, exact hitstop, hitstun duration, both knockback directions, hitstop push freeze, hitstun input lock, grounded-only overlap, and reaction snapshot replay. The complete suite was verified after the acceptance audit through `powershell -ExecutionPolicy Bypass -File .\Scripts\RunTests.ps1`: 42 total, 42 passed, 0 warnings, 0 failed, 0 not run; process exit 0. Airborne hit reactions, blocking, KO, scaling, and all later combat systems remain out of scope.

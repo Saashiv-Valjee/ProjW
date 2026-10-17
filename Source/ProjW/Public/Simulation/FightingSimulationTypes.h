@@ -52,6 +52,7 @@ enum class EFighterState : uint8
     LightAttackStartup,
     LightAttackActive,
     LightAttackRecovery
+    ,Hitstun
 };
 
 struct FSimBox
@@ -90,6 +91,9 @@ struct FFighterState
     // False during startup/normal jump; true after the one allowed double jump.
     bool bDoubleJumpUsed = false;
     bool bLightAttackHit = false;
+    uint8 HitstopFramesRemaining = 0;
+    bool bPendingHitReaction = false;
+    int32 PendingKnockbackVelocityX = 0;
     bool operator==(const FFighterState&) const = default;
 };
 

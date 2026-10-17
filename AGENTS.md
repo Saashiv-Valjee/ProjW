@@ -74,7 +74,7 @@ working directories are not writable by that identity. Do not use the old raw
 Unreal automation command. After simulation or gameplay changes, run:
 
 ```powershell
-.\Scripts\RunTests.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\RunTests.ps1
 ```
 
 Do not report a milestone as test-passing unless this complete suite executes

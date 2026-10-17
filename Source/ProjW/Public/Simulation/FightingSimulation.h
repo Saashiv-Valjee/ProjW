@@ -42,6 +42,10 @@ public:
     static constexpr int32 LightHitboxHeight = 50 * SubunitsPerWorldUnit;
     static constexpr int32 LightHitboxOffsetX = 44 * SubunitsPerWorldUnit;
     static constexpr int32 LightHitboxOffsetY = 55 * SubunitsPerWorldUnit;
+    static constexpr int32 LightDamage = 50;
+    static constexpr int32 LightHitstopFrames = 6;
+    static constexpr int32 LightHitstunFrames = 14;
+    static constexpr int32 LightKnockbackSpeed = 6 * SubunitsPerWorldUnit;
 
     static FSimBox GetHurtbox(const FFighterState& Fighter);
     static bool GetLightHitbox(const FFighterState& Fighter, FSimBox& OutBox);

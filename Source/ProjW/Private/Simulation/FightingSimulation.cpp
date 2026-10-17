@@ -33,6 +33,8 @@ namespace
             || State == EFighterState::LightAttackRecovery;
     }
 
+    bool IsHitstun(EFighterState State) { return State == EFighterState::Hitstun; }
+
     void ClearTap(FFighterState& Fighter)
     {
         Fighter.LastTapDirection = 0;
@@ -82,6 +84,45 @@ namespace
         Fighter.PreviousInput = Edges.Held;
         Fighter.PressedInput = Edges.Pressed;
         Fighter.ReleasedInput = Edges.Released;
+        if (Fighter.HitstopFramesRemaining > 0)
+        {
+            --Fighter.HitstopFramesRemaining;
+            return;
+        }
+        bool bEnteredHitstun = false;
+        if (Fighter.bPendingHitReaction && !IsHitstun(Fighter.CurrentState))
+        {
+            Fighter.CurrentState = EFighterState::Hitstun;
+            Fighter.StateFrame = 0;
+            bEnteredHitstun = true;
+        }
+        if (IsHitstun(Fighter.CurrentState))
+        {
+            Fighter.bGrounded = true;
+            Fighter.PositionY = 0;
+            Fighter.VelocityY = 0;
+            Fighter.VelocityX = Fighter.PendingKnockbackVelocityX;
+            MoveHorizontal(Fighter);
+            if (bEnteredHitstun)
+            {
+                // Entry is StateFrame 0; this call performs the first
+                // knockback step without incrementing the state timer.
+            }
+            else if (Fighter.StateFrame < Sim::LightHitstunFrames - 1)
+            {
+                SetState(Fighter, EFighterState::Hitstun);
+            }
+            else
+            {
+                Fighter.bPendingHitReaction = false;
+                Fighter.PendingKnockbackVelocityX = 0;
+                Fighter.VelocityX = 0;
+                const int32 Direction = HorizontalDirection(Input);
+                const bool bDown = Input.IsHeld(EFighterInputButton::Down);
+                SetState(Fighter, bDown ? EFighterState::Crouching : Direction ? EFighterState::Walking : EFighterState::Idle);
+            }
+            return;
+        }
         if (Fighter.LastTapDirection != 0 && Fighter.TapAgeFrames <= Sim::DashInputWindowFrames)
         {
             ++Fighter.TapAgeFrames;
@@ -304,13 +345,37 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
     StepFighter(State.Fighter1, Player1Input);
     StepFighter(State.Fighter2, Player2Input);
     FSimBox Hitbox;
-    if (GetLightHitbox(State.Fighter1, Hitbox) && !State.Fighter1.bLightAttackHit
-        && Hitbox.Overlaps(GetHurtbox(State.Fighter2)))
-    { State.Fighter1.bLightAttackHit = true; ++State.HitEventCount; }
-    if (GetLightHitbox(State.Fighter2, Hitbox) && !State.Fighter2.bLightAttackHit
-        && Hitbox.Overlaps(GetHurtbox(State.Fighter1)))
-    { State.Fighter2.bLightAttackHit = true; ++State.HitEventCount; }
-    if (State.Fighter1.bGrounded && State.Fighter2.bGrounded)
+    const bool bHit12 = GetLightHitbox(State.Fighter1, Hitbox) && !State.Fighter1.bLightAttackHit
+        && State.Fighter2.bGrounded && Hitbox.Overlaps(GetHurtbox(State.Fighter2));
+    const bool bHit21 = GetLightHitbox(State.Fighter2, Hitbox) && !State.Fighter2.bLightAttackHit
+        && State.Fighter1.bGrounded && Hitbox.Overlaps(GetHurtbox(State.Fighter1));
+    if (bHit12) State.Fighter1.bLightAttackHit = true;
+    if (bHit21) State.Fighter2.bLightAttackHit = true;
+    if (bHit12 || bHit21)
+    {
+        const bool bGrounded1 = State.Fighter1.bGrounded;
+        const bool bGrounded2 = State.Fighter2.bGrounded;
+        if (bHit12) { ++State.HitEventCount; }
+        if (bHit21) { ++State.HitEventCount; }
+        if (bHit12 && bGrounded2)
+        {
+            State.Fighter2.Health = FMath::Max(0, State.Fighter2.Health - LightDamage);
+            State.Fighter1.HitstopFramesRemaining = LightHitstopFrames;
+            State.Fighter2.HitstopFramesRemaining = LightHitstopFrames;
+            State.Fighter2.bPendingHitReaction = true;
+            State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PositionX >= State.Fighter1.PositionX ? LightKnockbackSpeed : -LightKnockbackSpeed;
+        }
+        if (bHit21 && bGrounded1)
+        {
+            State.Fighter1.Health = FMath::Max(0, State.Fighter1.Health - LightDamage);
+            State.Fighter2.HitstopFramesRemaining = LightHitstopFrames;
+            State.Fighter1.HitstopFramesRemaining = LightHitstopFrames;
+            State.Fighter1.bPendingHitReaction = true;
+            State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PositionX >= State.Fighter2.PositionX ? LightKnockbackSpeed : -LightKnockbackSpeed;
+        }
+    }
+    if (State.Fighter1.bGrounded && State.Fighter2.bGrounded
+        && State.Fighter1.HitstopFramesRemaining == 0 && State.Fighter2.HitstopFramesRemaining == 0)
     {
         ResolvePush(bFirstIsLeft ? State.Fighter1 : State.Fighter2,
             bFirstIsLeft ? State.Fighter2 : State.Fighter1);

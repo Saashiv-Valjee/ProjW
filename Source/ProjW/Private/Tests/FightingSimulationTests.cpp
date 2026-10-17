@@ -52,6 +52,9 @@ namespace
         Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityX"), A.CommittedJumpVelocityX, B.CommittedJumpVelocityX);
         Equal &= Test.TestEqual(TEXT("DoubleJumpUsed"), A.bDoubleJumpUsed, B.bDoubleJumpUsed);
         Equal &= Test.TestEqual(TEXT("LightAttackHit"), A.bLightAttackHit, B.bLightAttackHit);
+        Equal &= Test.TestEqual(TEXT("Hitstop"), A.HitstopFramesRemaining, B.HitstopFramesRemaining);
+        Equal &= Test.TestEqual(TEXT("PendingHitReaction"), A.bPendingHitReaction, B.bPendingHitReaction);
+        Equal &= Test.TestEqual(TEXT("PendingKnockback"), A.PendingKnockbackVelocityX, B.PendingKnockbackVelocityX);
         Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;
     }
