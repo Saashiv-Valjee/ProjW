@@ -144,8 +144,10 @@ bool FHeldJumpTest::RunTest(const FString& Parameters)
 {
     FMatchState S = Initial();
     Step(S, U);
-    TestFalse(TEXT("Up press launches"), S.Fighter1.bGrounded);
-    TestEqual(TEXT("Original first jump velocity"), S.Fighter1.VelocityY, Sim::JumpSpeed + Sim::Gravity);
+    TestTrue(TEXT("Up press starts grounded startup"), S.Fighter1.bGrounded);
+    for (int32 Frame = 1; Frame <= Sim::JumpStartupFrames; ++Frame) { Step(S, U); }
+    TestFalse(TEXT("Startup eventually launches"), S.Fighter1.bGrounded);
+    TestEqual(TEXT("Configured first jump velocity"), S.Fighter1.VelocityY, Sim::JumpVerticalSpeed);
     bool Landed = false;
     for (int32 Frame = 0; Frame < 180; ++Frame)
     {
@@ -157,7 +159,8 @@ bool FHeldJumpTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Original jump arc returns to ground"), Landed);
     Step(S);
     Step(S, U);
-    TestFalse(TEXT("Release and new press launches again"), S.Fighter1.bGrounded);
+    TestTrue(TEXT("Release and new press starts another startup"), S.Fighter1.bGrounded);
+    TestTrue(TEXT("Second startup state"), S.Fighter1.CurrentState == EFighterState::JumpStartup);
     TestEqual(TEXT("New jump state entry"), S.Fighter1.StateFrame, uint32(0));
     return !HasAnyErrors();
 }
@@ -184,7 +187,9 @@ bool FRelativeWalkTest::RunTest(const FString& Parameters)
             Step(S, L | R);
             TestEqual(TEXT("Opposed directions neutral"), S.Fighter1.VelocityX, 0);
             Step(S, U | (Direction > 0 ? R : L));
-            TestEqual(TEXT("Air speed remains original regardless of facing"), S.Fighter1.VelocityX, Direction * Sim::WalkSpeed);
+            for (int32 Frame = 1; Frame <= Sim::JumpStartupFrames; ++Frame) { Step(S); }
+            TestEqual(TEXT("Committed jump speed respects facing"), S.Fighter1.VelocityX,
+                Direction * (Forward ? Sim::ForwardJumpHorizontalSpeed : Sim::BackwardJumpHorizontalSpeed));
         }
     }
     return !HasAnyErrors();
@@ -213,7 +218,7 @@ bool FCrouchTest::RunTest(const FString& Parameters)
     Step(S, R);
     TestTrue(TEXT("Release into direction walks"), S.Fighter1.CurrentState == EFighterState::Walking);
     Step(S, D | U);
-    TestTrue(TEXT("New jump press has priority over crouch"), S.Fighter1.CurrentState == EFighterState::Jumping);
+    TestTrue(TEXT("New jump press has priority over crouch"), S.Fighter1.CurrentState == EFighterState::JumpStartup);
     return !HasAnyErrors();
 }
 

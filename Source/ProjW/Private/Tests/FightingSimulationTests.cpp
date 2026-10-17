@@ -49,6 +49,8 @@ namespace
         Equal &= Test.TestEqual(TEXT("LastTapDirection"), A.LastTapDirection, B.LastTapDirection);
         Equal &= Test.TestEqual(TEXT("TapAgeFrames"), A.TapAgeFrames, B.TapAgeFrames);
         Equal &= Test.TestEqual(TEXT("DashDirection"), A.DashDirection, B.DashDirection);
+        Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityX"), A.CommittedJumpVelocityX, B.CommittedJumpVelocityX);
+        Equal &= Test.TestEqual(TEXT("DoubleJumpUsed"), A.bDoubleJumpUsed, B.bDoubleJumpUsed);
         Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;
     }
@@ -125,13 +127,20 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("Opposed directions cancel"), State.Fighter1.VelocityX, 0);
     TestTrue(TEXT("Idle state"), State.Fighter1.CurrentState == EFighterState::Idle);
     FFightingSimulation::SimulateFrame(State, Input(Bit(EFighterInputButton::Up)), {});
-    TestFalse(TEXT("Jump leaves ground"), State.Fighter1.bGrounded);
-    TestTrue(TEXT("Jump rises"), State.Fighter1.PositionY > 0);
+    TestTrue(TEXT("Jump startup remains grounded"), State.Fighter1.bGrounded);
+    TestEqual(TEXT("Jump startup height"), State.Fighter1.PositionY, 0);
+    TestTrue(TEXT("Jump startup state"), State.Fighter1.CurrentState == EFighterState::JumpStartup);
+    for (int32 Frame = 1; Frame < FFightingSimulation::JumpStartupFrames; ++Frame)
+    {
+        FFightingSimulation::SimulateFrame(State, {}, {});
+    }
+    FFightingSimulation::SimulateFrame(State, {}, {});
+    TestFalse(TEXT("Jump launch leaves ground"), State.Fighter1.bGrounded);
+    TestTrue(TEXT("Jump launch rises"), State.Fighter1.PositionY > 0);
     TestTrue(TEXT("Jump state"), State.Fighter1.CurrentState == EFighterState::Jumping);
     const int32 AirStartX = State.Fighter1.PositionX;
     FFightingSimulation::SimulateFrame(State, Input(Bit(EFighterInputButton::Left)), {});
-    TestEqual(TEXT("Horizontal control in air"), State.Fighter1.PositionX,
-        AirStartX - FFightingSimulation::WalkSpeed);
+    TestEqual(TEXT("Neutral jump ignores air steering"), State.Fighter1.PositionX, AirStartX);
     TestEqual(TEXT("Continuing state increments timer"), State.Fighter1.StateFrame, uint32(1));
     bool Landed = false;
     for (uint32 Frame = 0; Frame < 240; ++Frame)
@@ -146,7 +155,8 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Jump eventually lands"), Landed);
     TestEqual(TEXT("Ground height"), State.Fighter1.PositionY, 0);
     TestEqual(TEXT("Landing clears vertical speed"), State.Fighter1.VelocityY, 0);
-    TestEqual(TEXT("Initial calls also count"), State.SimulationFrame, uint64(244));
+    TestEqual(TEXT("Initial calls also count"), State.SimulationFrame,
+        uint64(244 + FFightingSimulation::JumpStartupFrames));
     TestTrue(TEXT("Facing right toward opponent"), State.Fighter1.Facing == EFighterFacing::Right);
     TestTrue(TEXT("Facing left toward opponent"), State.Fighter2.Facing == EFighterFacing::Left);
 

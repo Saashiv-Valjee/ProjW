@@ -1,5 +1,9 @@
 # Milestone 3A: frame input and grounded movement
 
+This records Milestone 3A. Current jump and aerial semantics are documented in
+[Milestone3B.md](Milestone3B.md); Milestone 3B replaces immediate launch and free
+air steering with startup, committed momentum, and one deterministic double jump.
+
 Launch the editor with `-d3d11`, open `/Engine/Maps/Entry`, press Play in Selected
 Viewport (one player, Standalone) and click the viewport. No scene construction
 is needed. Shift+F1 releases the mouse; Escape stops PIE. Renderer settings and

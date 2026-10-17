@@ -39,7 +39,17 @@ struct FFighterInputEdges
 };
 
 enum class EFighterFacing : int8 { Left = -1, Right = 1 };
-enum class EFighterState : uint8 { Idle, Walking, Jumping, Crouching, ForwardDash, BackDash };
+enum class EFighterState : uint8
+{
+    Idle,
+    Walking,
+    Crouching,
+    ForwardDash,
+    BackDash,
+    JumpStartup,
+    Jumping,
+    DoubleJumping
+};
 
 // X is horizontal; Y is height on the fixed gameplay plane. Ground is Y = 0.
 // Positions: 1024 integer subunits/world unit. Velocities: subunits/frame.
@@ -65,6 +75,10 @@ struct FFighterState
     uint8 TapAgeFrames = 0;
     // World-space direction locked on dash entry, zero outside a dash.
     int8 DashDirection = 0;
+    // Exact world-space horizontal velocity committed for the pending/current jump.
+    int32 CommittedJumpVelocityX = 0;
+    // False during startup/normal jump; true after the one allowed double jump.
+    bool bDoubleJumpUsed = false;
     bool operator==(const FFighterState&) const = default;
 };
 
