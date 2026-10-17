@@ -15,13 +15,13 @@ void Place(FMatchState& S, int32 A, int32 D)
 void ReachActive(FMatchState& S)
 {
     FFightingSimulation::SimulateFrame(S, Buttons(Light), {});
-    for (int32 I = 1; I < FFightingSimulation::LightStartupFrames; ++I) FFightingSimulation::SimulateFrame(S, Buttons(Light), {});
+    for (int32 I = 1; I < FFightingSimulation::FindMoveDefinition(EMoveId::Light)->StartupFrames; ++I) FFightingSimulation::SimulateFrame(S, Buttons(Light), {});
     FFightingSimulation::SimulateFrame(S, Buttons(Light), {});
 }
 void ReachTradeActive(FMatchState& S)
 {
     FFightingSimulation::SimulateFrame(S, Buttons(Light), Buttons(Light));
-    for (int32 I = 1; I < FFightingSimulation::LightStartupFrames; ++I) FFightingSimulation::SimulateFrame(S, Buttons(Light), Buttons(Light));
+    for (int32 I = 1; I < FFightingSimulation::FindMoveDefinition(EMoveId::Light)->StartupFrames; ++I) FFightingSimulation::SimulateFrame(S, Buttons(Light), Buttons(Light));
     FFightingSimulation::SimulateFrame(S, Buttons(Light), Buttons(Light));
 }
 }
@@ -32,7 +32,7 @@ bool FCombatSymmetryTest::RunTest(const FString&)
     FMatchState A, B; Place(A, -100, -40); Place(B, 100, 40); B.Fighter1.Facing=EFighterFacing::Left; B.Fighter2.Facing=EFighterFacing::Right;
     ReachActive(A); ReachActive(B); TestEqual(TEXT("mirrored hit events"), A.HitEventCount, B.HitEventCount);
     TestEqual(TEXT("F1 health mirrored"), A.Fighter1.Health, B.Fighter1.Health); TestEqual(TEXT("F2 health mirrored"), A.Fighter2.Health, B.Fighter2.Health);
-    TestEqual(TEXT("F1 attack flag mirrored"), A.Fighter1.bLightAttackHit, B.Fighter1.bLightAttackHit); TestEqual(TEXT("F2 attack flag mirrored"), A.Fighter2.bLightAttackHit, B.Fighter2.bLightAttackHit);
+    TestEqual(TEXT("F1 attack flag mirrored"), A.Fighter1.bCurrentMoveConnected, B.Fighter1.bCurrentMoveConnected); TestEqual(TEXT("F2 attack flag mirrored"), A.Fighter2.bCurrentMoveConnected, B.Fighter2.bCurrentMoveConnected);
     TestEqual(TEXT("F1 hitstop mirrored"), A.Fighter1.HitstopFramesRemaining, B.Fighter1.HitstopFramesRemaining); TestEqual(TEXT("F2 hitstop mirrored"), A.Fighter2.HitstopFramesRemaining, B.Fighter2.HitstopFramesRemaining);
     TestEqual(TEXT("F1 pending mirrored"), A.Fighter1.bPendingHitReaction, B.Fighter1.bPendingHitReaction); TestEqual(TEXT("F2 pending mirrored"), A.Fighter2.bPendingHitReaction, B.Fighter2.bPendingHitReaction);
     TestEqual(TEXT("knockback signs mirrored"), A.Fighter2.PendingKnockbackVelocityX, -B.Fighter2.PendingKnockbackVelocityX);
@@ -56,7 +56,7 @@ bool FCombatStageEdgesTest::RunTest(const FString&)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCombatInputEdgesReactionTest, "ProjW.Simulation.Combat.InputEdgesThroughReaction", EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FCombatInputEdgesReactionTest::RunTest(const FString&)
-{ FMatchState S; Place(S,-100,-40); ReachActive(S); const uint16 Held=Light|static_cast<uint16>(EFighterInputButton::Up)|static_cast<uint16>(EFighterInputButton::Right); for(int32 I=0;I<25;++I){FFightingSimulation::SimulateFrame(S,Buttons(Held),{}); TestFalse(TEXT("reaction cannot attack"),S.Fighter2.CurrentState==EFighterState::LightAttackStartup);} TestTrue(TEXT("reaction completes"),S.Fighter2.CurrentState!=EFighterState::Hitstun); return true; }
+{ FMatchState S; Place(S,-100,-40); ReachActive(S); const uint16 Held=Light|static_cast<uint16>(EFighterInputButton::Up)|static_cast<uint16>(EFighterInputButton::Right); for(int32 I=0;I<25;++I){FFightingSimulation::SimulateFrame(S,Buttons(Held),{}); TestFalse(TEXT("reaction cannot attack"),S.Fighter2.CurrentState==EFighterState::Attack);} TestTrue(TEXT("reaction completes"),S.Fighter2.CurrentState!=EFighterState::Hitstun); return true; }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCombatSnapshotTortureTest, "ProjW.Simulation.Combat.SnapshotTorture", EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FCombatSnapshotTortureTest::RunTest(const FString&)

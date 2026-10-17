@@ -43,6 +43,8 @@ namespace
         Equal &= Test.TestEqual(TEXT("Health"), A.Health, B.Health);
         Equal &= Test.TestEqual(TEXT("CurrentState"), static_cast<uint8>(A.CurrentState), static_cast<uint8>(B.CurrentState));
         Equal &= Test.TestEqual(TEXT("StateFrame"), A.StateFrame, B.StateFrame);
+        Equal &= Test.TestEqual(TEXT("CurrentMoveId"), static_cast<uint8>(A.CurrentMoveId), static_cast<uint8>(B.CurrentMoveId));
+        Equal &= Test.TestEqual(TEXT("MovePhase"), static_cast<uint8>(A.MovePhase), static_cast<uint8>(B.MovePhase));
         Equal &= Test.TestEqual(TEXT("PreviousInput"), A.PreviousInput.Buttons, B.PreviousInput.Buttons);
         Equal &= Test.TestEqual(TEXT("PressedInput"), A.PressedInput.Buttons, B.PressedInput.Buttons);
         Equal &= Test.TestEqual(TEXT("ReleasedInput"), A.ReleasedInput.Buttons, B.ReleasedInput.Buttons);
@@ -51,9 +53,10 @@ namespace
         Equal &= Test.TestEqual(TEXT("DashDirection"), A.DashDirection, B.DashDirection);
         Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityX"), A.CommittedJumpVelocityX, B.CommittedJumpVelocityX);
         Equal &= Test.TestEqual(TEXT("DoubleJumpUsed"), A.bDoubleJumpUsed, B.bDoubleJumpUsed);
-        Equal &= Test.TestEqual(TEXT("LightAttackHit"), A.bLightAttackHit, B.bLightAttackHit);
+        Equal &= Test.TestEqual(TEXT("CurrentMoveConnected"), A.bCurrentMoveConnected, B.bCurrentMoveConnected);
         Equal &= Test.TestEqual(TEXT("Hitstop"), A.HitstopFramesRemaining, B.HitstopFramesRemaining);
         Equal &= Test.TestEqual(TEXT("PendingHitReaction"), A.bPendingHitReaction, B.bPendingHitReaction);
+        Equal &= Test.TestEqual(TEXT("PendingHitstunFrames"), A.PendingHitstunFrames, B.PendingHitstunFrames);
         Equal &= Test.TestEqual(TEXT("PendingKnockback"), A.PendingKnockbackVelocityX, B.PendingKnockbackVelocityX);
         Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;

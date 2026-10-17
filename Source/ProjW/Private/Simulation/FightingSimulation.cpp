@@ -22,15 +22,9 @@ namespace
         return State == EFighterState::ForwardDash || State == EFighterState::BackDash;
     }
 
-    bool IsAirborneState(EFighterState State)
-    {
-        return State == EFighterState::Jumping || State == EFighterState::DoubleJumping;
-    }
-
     bool IsAttack(EFighterState State)
     {
-        return State == EFighterState::LightAttackStartup || State == EFighterState::LightAttackActive
-            || State == EFighterState::LightAttackRecovery;
+        return State == EFighterState::Attack;
     }
 
     bool IsHitstun(EFighterState State) { return State == EFighterState::Hitstun; }
@@ -94,6 +88,8 @@ namespace
         {
             Fighter.CurrentState = EFighterState::Hitstun;
             Fighter.StateFrame = 0;
+            Fighter.CurrentMoveId = EMoveId::None;
+            Fighter.MovePhase = EMovePhase::Startup;
             bEnteredHitstun = true;
         }
         if (IsHitstun(Fighter.CurrentState))
@@ -108,13 +104,14 @@ namespace
                 // Entry is StateFrame 0; this call performs the first
                 // knockback step without incrementing the state timer.
             }
-            else if (Fighter.StateFrame < Sim::LightHitstunFrames - 1)
+            else if (Fighter.StateFrame < static_cast<uint32>(Fighter.PendingHitstunFrames) - 1u)
             {
                 SetState(Fighter, EFighterState::Hitstun);
             }
             else
             {
                 Fighter.bPendingHitReaction = false;
+                Fighter.PendingHitstunFrames = 0;
                 Fighter.PendingKnockbackVelocityX = 0;
                 Fighter.VelocityX = 0;
                 const int32 Direction = HorizontalDirection(Input);
@@ -137,6 +134,7 @@ namespace
         bool bDashing = Fighter.bGrounded && bWasDash && Fighter.StateFrame < DashDuration - 1u;
         EFighterState Next = EFighterState::Idle;
         bool bFreshAerialImpulse = false;
+        bool bMovePhaseChanged = false;
 
         if (IsAttack(Fighter.CurrentState))
         {
@@ -145,12 +143,33 @@ namespace
             Fighter.VelocityX = 0;
             Fighter.VelocityY = 0;
             ClearTap(Fighter);
-            if (Fighter.CurrentState == EFighterState::LightAttackStartup)
-                Next = Fighter.StateFrame < Sim::LightStartupFrames - 1 ? EFighterState::LightAttackStartup : EFighterState::LightAttackActive;
-            else if (Fighter.CurrentState == EFighterState::LightAttackActive)
-                Next = Fighter.StateFrame < Sim::LightActiveFrames - 1 ? EFighterState::LightAttackActive : EFighterState::LightAttackRecovery;
+            const FMoveDefinition* Move = Sim::FindMoveDefinition(Fighter.CurrentMoveId);
+            if (!Move)
+            {
+                Fighter.CurrentMoveId = EMoveId::None;
+                Fighter.MovePhase = EMovePhase::Startup;
+                Next = EFighterState::Idle;
+            }
+            else if (Fighter.MovePhase == EMovePhase::Startup)
+            {
+                if (Fighter.StateFrame < Move->StartupFrames - 1u) Next = EFighterState::Attack;
+                else { Fighter.MovePhase = EMovePhase::Active; bMovePhaseChanged = true; Next = EFighterState::Attack; }
+            }
+            else if (Fighter.MovePhase == EMovePhase::Active)
+            {
+                if (Fighter.StateFrame < Move->ActiveFrames - 1u) Next = EFighterState::Attack;
+                else { Fighter.MovePhase = EMovePhase::Recovery; bMovePhaseChanged = true; Next = EFighterState::Attack; }
+            }
+            else if (Fighter.MovePhase == EMovePhase::Recovery && Fighter.StateFrame < Move->RecoveryFrames - 1u)
+            {
+                Next = EFighterState::Attack;
+            }
             else
-                Next = Fighter.StateFrame < Sim::LightRecoveryFrames - 1 ? EFighterState::LightAttackRecovery : (bDown ? EFighterState::Crouching : Direction ? EFighterState::Walking : EFighterState::Idle);
+            {
+                Fighter.CurrentMoveId = EMoveId::None;
+                Fighter.MovePhase = EMovePhase::Startup;
+                Next = bDown ? EFighterState::Crouching : Direction ? EFighterState::Walking : EFighterState::Idle;
+            }
         }
         else if (bDashing)
         {
@@ -209,8 +228,10 @@ namespace
                 ClearTap(Fighter);
                 Fighter.VelocityX = 0;
                 Fighter.VelocityY = 0;
-                Fighter.bLightAttackHit = false;
-                Next = EFighterState::LightAttackStartup;
+                Fighter.CurrentMoveId = EMoveId::Light;
+                Fighter.MovePhase = EMovePhase::Startup;
+                Fighter.bCurrentMoveConnected = false;
+                Next = EFighterState::Attack;
             }
             else if (bJumpPressed)
             {
@@ -301,6 +322,7 @@ namespace
             Fighter.VelocityY = 0;
         }
         SetState(Fighter, Next);
+        if (bMovePhaseChanged) Fighter.StateFrame = 0;
     }
 
     void ResolvePush(FFighterState& Left, FFighterState& Right)
@@ -317,20 +339,31 @@ namespace
     }
 }
 
+const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
+{
+    static constexpr FMoveDefinition LightMove{
+        5, 3, 9, 50, 6, 14, 6 * SubunitsPerWorldUnit,
+        44 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
+        28 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
+    return MoveId == EMoveId::Light ? &LightMove : nullptr;
+}
+
 FSimBox FFightingSimulation::GetHurtbox(const FFighterState& Fighter)
 {
     return {Fighter.PositionX - HurtboxHalfWidth, Fighter.PositionX + HurtboxHalfWidth,
         Fighter.PositionY, Fighter.PositionY + HurtboxHeight};
 }
 
-bool FFightingSimulation::GetLightHitbox(const FFighterState& Fighter, FSimBox& OutBox)
+bool FFightingSimulation::GetMoveHitbox(const FFighterState& Fighter, FSimBox& OutBox)
 {
-    if (Fighter.CurrentState != EFighterState::LightAttackActive) return false;
+    if (Fighter.CurrentState != EFighterState::Attack || Fighter.MovePhase != EMovePhase::Active) return false;
+    const FMoveDefinition* Move = FindMoveDefinition(Fighter.CurrentMoveId);
+    if (!Move) return false;
     const int32 Sign = static_cast<int32>(Fighter.Facing);
-    const int32 CenterX = Fighter.PositionX + Sign * LightHitboxOffsetX;
-    OutBox = {CenterX - LightHitboxHalfWidth, CenterX + LightHitboxHalfWidth,
-        Fighter.PositionY + LightHitboxOffsetY - LightHitboxHeight / 2,
-        Fighter.PositionY + LightHitboxOffsetY + LightHitboxHeight / 2};
+    const int32 CenterX = Fighter.PositionX + Sign * Move->HitboxOffsetX;
+    OutBox = {CenterX - Move->HitboxHalfWidth, CenterX + Move->HitboxHalfWidth,
+        Fighter.PositionY + Move->HitboxOffsetY - Move->HitboxHalfHeight,
+        Fighter.PositionY + Move->HitboxOffsetY + Move->HitboxHalfHeight};
     return true;
 }
 
@@ -345,33 +378,35 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
     StepFighter(State.Fighter1, Player1Input);
     StepFighter(State.Fighter2, Player2Input);
     FSimBox Hitbox;
-    const bool bHit12 = GetLightHitbox(State.Fighter1, Hitbox) && !State.Fighter1.bLightAttackHit
+    const bool bHit12 = GetMoveHitbox(State.Fighter1, Hitbox) && !State.Fighter1.bCurrentMoveConnected
         && State.Fighter2.bGrounded && Hitbox.Overlaps(GetHurtbox(State.Fighter2));
-    const bool bHit21 = GetLightHitbox(State.Fighter2, Hitbox) && !State.Fighter2.bLightAttackHit
+    const bool bHit21 = GetMoveHitbox(State.Fighter2, Hitbox) && !State.Fighter2.bCurrentMoveConnected
         && State.Fighter1.bGrounded && Hitbox.Overlaps(GetHurtbox(State.Fighter1));
-    if (bHit12) State.Fighter1.bLightAttackHit = true;
-    if (bHit21) State.Fighter2.bLightAttackHit = true;
+    if (bHit12) State.Fighter1.bCurrentMoveConnected = true;
+    if (bHit21) State.Fighter2.bCurrentMoveConnected = true;
     if (bHit12 || bHit21)
     {
-        const bool bGrounded1 = State.Fighter1.bGrounded;
-        const bool bGrounded2 = State.Fighter2.bGrounded;
+        const FMoveDefinition* Move1 = bHit12 ? FindMoveDefinition(State.Fighter1.CurrentMoveId) : nullptr;
+        const FMoveDefinition* Move2 = bHit21 ? FindMoveDefinition(State.Fighter2.CurrentMoveId) : nullptr;
         if (bHit12) { ++State.HitEventCount; }
         if (bHit21) { ++State.HitEventCount; }
-        if (bHit12 && bGrounded2)
+        if (bHit12)
         {
-            State.Fighter2.Health = FMath::Max(0, State.Fighter2.Health - LightDamage);
-            State.Fighter1.HitstopFramesRemaining = LightHitstopFrames;
-            State.Fighter2.HitstopFramesRemaining = LightHitstopFrames;
+            State.Fighter2.Health = FMath::Max(0, State.Fighter2.Health - Move1->Damage);
+            State.Fighter1.HitstopFramesRemaining = Move1->HitstopFrames;
+            State.Fighter2.HitstopFramesRemaining = Move1->HitstopFrames;
             State.Fighter2.bPendingHitReaction = true;
-            State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PositionX >= State.Fighter1.PositionX ? LightKnockbackSpeed : -LightKnockbackSpeed;
+            State.Fighter2.PendingHitstunFrames = Move1->HitstunFrames;
+            State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PositionX >= State.Fighter1.PositionX ? Move1->KnockbackSpeed : -Move1->KnockbackSpeed;
         }
-        if (bHit21 && bGrounded1)
+        if (bHit21)
         {
-            State.Fighter1.Health = FMath::Max(0, State.Fighter1.Health - LightDamage);
-            State.Fighter2.HitstopFramesRemaining = LightHitstopFrames;
-            State.Fighter1.HitstopFramesRemaining = LightHitstopFrames;
+            State.Fighter1.Health = FMath::Max(0, State.Fighter1.Health - Move2->Damage);
+            State.Fighter2.HitstopFramesRemaining = Move2->HitstopFrames;
+            State.Fighter1.HitstopFramesRemaining = Move2->HitstopFrames;
             State.Fighter1.bPendingHitReaction = true;
-            State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PositionX >= State.Fighter2.PositionX ? LightKnockbackSpeed : -LightKnockbackSpeed;
+            State.Fighter1.PendingHitstunFrames = Move2->HitstunFrames;
+            State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PositionX >= State.Fighter2.PositionX ? Move2->KnockbackSpeed : -Move2->KnockbackSpeed;
         }
     }
     if (State.Fighter1.bGrounded && State.Fighter2.bGrounded

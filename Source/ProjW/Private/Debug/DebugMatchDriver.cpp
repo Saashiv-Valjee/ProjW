@@ -102,7 +102,7 @@ void ADebugMatchDriver::Tick(float DeltaSeconds)
         const FVector HurtCenter((Hurt.MinX + Hurt.MaxX) * 0.5 / 1024.0, 0, (Hurt.MinY + Hurt.MaxY) * 0.5 / 1024.0);
         DrawDebugBox(GetWorld(), HurtCenter, FVector((Hurt.MaxX-Hurt.MinX)*0.5/1024.0, 8, (Hurt.MaxY-Hurt.MinY)*0.5/1024.0), FColor::Green, false, 0.05f, 0, 1.5f);
         FSimBox Attack;
-        if (FFightingSimulation::GetLightHitbox(*Fighter, Attack))
+        if (FFightingSimulation::GetMoveHitbox(*Fighter, Attack))
         {
             const FVector Center((Attack.MinX + Attack.MaxX) * 0.5 / 1024.0, 0, (Attack.MinY + Attack.MaxY) * 0.5 / 1024.0);
             DrawDebugBox(GetWorld(), Center, FVector((Attack.MaxX-Attack.MinX)*0.5/1024.0, 10, (Attack.MaxY-Attack.MinY)*0.5/1024.0), FColor::Red, false, 0.05f, 0, 2.0f);

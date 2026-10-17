@@ -39,6 +39,8 @@ struct FFighterInputEdges
 };
 
 enum class EFighterFacing : int8 { Left = -1, Right = 1 };
+enum class EMoveId : uint8 { None = 0, Light = 1 };
+enum class EMovePhase : uint8 { Startup = 0, Active = 1, Recovery = 2 };
 enum class EFighterState : uint8
 {
     Idle,
@@ -49,10 +51,8 @@ enum class EFighterState : uint8
     JumpStartup,
     Jumping,
     DoubleJumping,
-    LightAttackStartup,
-    LightAttackActive,
-    LightAttackRecovery
-    ,Hitstun
+    Attack,
+    Hitstun
 };
 
 struct FSimBox
@@ -76,6 +76,8 @@ struct FFighterState
     int32 Health = 1000;
     EFighterState CurrentState = EFighterState::Idle;
     uint32 StateFrame = 0;
+    EMoveId CurrentMoveId = EMoveId::None;
+    EMovePhase MovePhase = EMovePhase::Startup;
 
     // Last completed frame's held mask; supplies previous input on the next step.
     FFighterInput PreviousInput;
@@ -90,9 +92,10 @@ struct FFighterState
     int32 CommittedJumpVelocityX = 0;
     // False during startup/normal jump; true after the one allowed double jump.
     bool bDoubleJumpUsed = false;
-    bool bLightAttackHit = false;
+    bool bCurrentMoveConnected = false;
     uint8 HitstopFramesRemaining = 0;
     bool bPendingHitReaction = false;
+    uint8 PendingHitstunFrames = 0;
     int32 PendingKnockbackVelocityX = 0;
     bool operator==(const FFighterState&) const = default;
 };
