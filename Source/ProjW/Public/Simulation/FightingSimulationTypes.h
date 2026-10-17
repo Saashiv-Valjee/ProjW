@@ -39,7 +39,7 @@ struct FFighterInputEdges
 };
 
 enum class EFighterFacing : int8 { Left = -1, Right = 1 };
-enum class EMoveId : uint8 { None = 0, Light = 1 };
+enum class EMoveId : uint8 { None = 0, Light = 1, Medium = 2, Heavy = 3 };
 enum class EMovePhase : uint8 { Startup = 0, Active = 1, Recovery = 2 };
 enum class EFighterState : uint8
 {

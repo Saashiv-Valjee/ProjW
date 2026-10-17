@@ -31,8 +31,16 @@ void ADebugFightingHUD::DrawHUD()
         case EFighterState::Attack: StateName = TEXT("Attack"); break;
         case EFighterState::Hitstun: StateName = TEXT("Hitstun"); break;
     }
+    const TCHAR* MoveName = TEXT("None");
+    switch (F.CurrentMoveId)
+    {
+        case EMoveId::Light: MoveName = TEXT("Light"); break;
+        case EMoveId::Medium: MoveName = TEXT("Medium"); break;
+        case EMoveId::Heavy: MoveName = TEXT("Heavy"); break;
+        default: break;
+    }
     const FString Text = FString::Printf(
-        TEXT("MILESTONE 5A | 60 Hz | Frame: %llu | Render: %.1f FPS\n")
+        TEXT("MILESTONE 5C | Combat Rules: Baseline | 60 Hz | Frame: %llu | Render: %.1f FPS\n")
         TEXT("P1 BLUE: A/D walk | double tap A/D dash | W press jump | S crouch\n")
         TEXT("Numpad 7 light | Numpad 8 medium | Numpad 9 heavy | U special | I assist1 | O assist2\n")
         TEXT("P1 Pos: (%d, %d)  Vel: (%d, %d) [integer subunits]\n")
@@ -43,7 +51,7 @@ void ADebugFightingHUD::DrawHUD()
         TEXT("Click viewport to control. Shift+F1 releases mouse. P2 ORANGE is neutral."),
         Match.SimulationFrame, Driver->GetRenderFPS(), F.PositionX, F.PositionY,
         F.VelocityX, F.VelocityY, F.bGrounded ? TEXT("true") : TEXT("false"),
-        StateName, F.CurrentMoveId == EMoveId::Light ? TEXT("Light") : TEXT("None"),
+        StateName, MoveName,
         F.CurrentState == EFighterState::Attack ? (F.MovePhase == EMovePhase::Startup ? TEXT("Startup")
             : F.MovePhase == EMovePhase::Active ? TEXT("Active") : TEXT("Recovery")) : TEXT("-"),
         F.StateFrame, F.Facing == EFighterFacing::Right ? TEXT("Right") : TEXT("Left"),

@@ -180,12 +180,11 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
 
     const FMatchState BeforeUnused = State;
     FMatchState Neutral = State;
-    // Light is now actionable in Milestone 4A. Keep this legacy movement
-    // invariant focused on inert action bits rather than accidentally starting
-    // a Light attack during the state comparison.
-    FFightingSimulation::SimulateFrame(State, Input(0x3e0u), Input(0x3e0u));
+    // The three normals are actionable. Keep this legacy movement invariant
+    // focused on the still-inert Special/Assist1/Assist2 bits.
+    FFightingSimulation::SimulateFrame(State, Input(0x380u), Input(0x380u));
     FFightingSimulation::SimulateFrame(Neutral, {}, {});
-    TestEqual(TEXT("Inert action inputs recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x3e0));
+    TestEqual(TEXT("Inert action inputs recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x380));
     Neutral.Fighter1.PreviousInput = State.Fighter1.PreviousInput;
     Neutral.Fighter2.PreviousInput = State.Fighter2.PreviousInput;
     Neutral.Fighter1.PressedInput = State.Fighter1.PressedInput;

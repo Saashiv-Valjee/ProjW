@@ -47,6 +47,15 @@ namespace
             - static_cast<int32>(Input.IsHeld(EFighterInputButton::Left));
     }
 
+    EMoveId SelectPressedMove(const FFighterInput& Pressed)
+    {
+        // Priority is explicit and independent of enum values.
+        if (Pressed.IsHeld(EFighterInputButton::Heavy)) { return EMoveId::Heavy; }
+        if (Pressed.IsHeld(EFighterInputButton::Medium)) { return EMoveId::Medium; }
+        if (Pressed.IsHeld(EFighterInputButton::Light)) { return EMoveId::Light; }
+        return EMoveId::None;
+    }
+
     int32 SelectJumpVelocityX(int32 Direction, EFighterFacing Facing, bool bDoubleJump)
     {
         if (Direction == 0)
@@ -222,13 +231,13 @@ namespace
             Fighter.CommittedJumpVelocityX = 0;
             Fighter.bDoubleJumpUsed = false;
 
-            // A fresh jump press outranks crouch, walking, and a new dash command.
-            if (Edges.Pressed.IsHeld(EFighterInputButton::Light))
+            const EMoveId PressedMove = SelectPressedMove(Edges.Pressed);
+            if (PressedMove != EMoveId::None)
             {
                 ClearTap(Fighter);
                 Fighter.VelocityX = 0;
                 Fighter.VelocityY = 0;
-                Fighter.CurrentMoveId = EMoveId::Light;
+                Fighter.CurrentMoveId = PressedMove;
                 Fighter.MovePhase = EMovePhase::Startup;
                 Fighter.bCurrentMoveConnected = false;
                 Next = EFighterState::Attack;
@@ -337,6 +346,31 @@ namespace
         Left.PositionX = static_cast<int32>(L);
         Right.PositionX = static_cast<int32>(R);
     }
+
+    // Per-frame results only. A future ruleset can classify a valid geometric
+    // contact here without changing move progression or pair resolution.
+    enum class EContactOutcome : uint8 { None = 0, Hit = 1 };
+
+    struct FContactResult
+    {
+        EContactOutcome Outcome = EContactOutcome::None;
+        const FMoveDefinition* Move = nullptr;
+    };
+
+    bool HasValidGroundedOverlap(const FFighterState& Attacker, const FFighterState& Defender)
+    {
+        FSimBox Hitbox;
+        return !Attacker.bCurrentMoveConnected && Defender.bGrounded
+            && Sim::GetMoveHitbox(Attacker, Hitbox)
+            && Hitbox.Overlaps(Sim::GetHurtbox(Defender));
+    }
+
+    FContactResult ClassifyBaselineContact(const FFighterState& Attacker, const FFighterState& Defender)
+    {
+        if (!HasValidGroundedOverlap(Attacker, Defender)) { return {}; }
+        // GetMoveHitbox has already checked that the active move ID is valid.
+        return {EContactOutcome::Hit, Sim::FindMoveDefinition(Attacker.CurrentMoveId)};
+    }
 }
 
 const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
@@ -345,7 +379,21 @@ const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
         5, 3, 9, 50, 6, 14, 6 * SubunitsPerWorldUnit,
         44 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         28 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
-    return MoveId == EMoveId::Light ? &LightMove : nullptr;
+    static constexpr FMoveDefinition MediumMove{
+        7, 3, 12, 80, 7, 17, 7 * SubunitsPerWorldUnit,
+        50 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
+        35 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
+    static constexpr FMoveDefinition HeavyMove{
+        10, 4, 16, 120, 9, 20, 9 * SubunitsPerWorldUnit,
+        66 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
+        44 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
+    switch (MoveId)
+    {
+        case EMoveId::Light: return &LightMove;
+        case EMoveId::Medium: return &MediumMove;
+        case EMoveId::Heavy: return &HeavyMove;
+        default: return nullptr;
+    }
 }
 
 FSimBox FFightingSimulation::GetHurtbox(const FFighterState& Fighter)
@@ -377,24 +425,24 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
             || State.Fighter2.Facing != EFighterFacing::Right));
     StepFighter(State.Fighter1, Player1Input);
     StepFighter(State.Fighter2, Player2Input);
-    FSimBox Hitbox;
-    const bool bHit12 = GetMoveHitbox(State.Fighter1, Hitbox) && !State.Fighter1.bCurrentMoveConnected
-        && State.Fighter2.bGrounded && Hitbox.Overlaps(GetHurtbox(State.Fighter2));
-    const bool bHit21 = GetMoveHitbox(State.Fighter2, Hitbox) && !State.Fighter2.bCurrentMoveConnected
-        && State.Fighter1.bGrounded && Hitbox.Overlaps(GetHurtbox(State.Fighter1));
+    const FContactResult Contact12 = ClassifyBaselineContact(State.Fighter1, State.Fighter2);
+    const FContactResult Contact21 = ClassifyBaselineContact(State.Fighter2, State.Fighter1);
+    const bool bHit12 = Contact12.Outcome == EContactOutcome::Hit;
+    const bool bHit21 = Contact21.Outcome == EContactOutcome::Hit;
     if (bHit12) State.Fighter1.bCurrentMoveConnected = true;
     if (bHit21) State.Fighter2.bCurrentMoveConnected = true;
     if (bHit12 || bHit21)
     {
-        const FMoveDefinition* Move1 = bHit12 ? FindMoveDefinition(State.Fighter1.CurrentMoveId) : nullptr;
-        const FMoveDefinition* Move2 = bHit21 ? FindMoveDefinition(State.Fighter2.CurrentMoveId) : nullptr;
+        const FMoveDefinition* Move1 = Contact12.Move;
+        const FMoveDefinition* Move2 = Contact21.Move;
+        const uint8 SharedHitstop = bHit12 && bHit21
+            ? FMath::Max(Move1->HitstopFrames, Move2->HitstopFrames)
+            : bHit12 ? Move1->HitstopFrames : Move2->HitstopFrames;
         if (bHit12) { ++State.HitEventCount; }
         if (bHit21) { ++State.HitEventCount; }
         if (bHit12)
         {
             State.Fighter2.Health = FMath::Max(0, State.Fighter2.Health - Move1->Damage);
-            State.Fighter1.HitstopFramesRemaining = Move1->HitstopFrames;
-            State.Fighter2.HitstopFramesRemaining = Move1->HitstopFrames;
             State.Fighter2.bPendingHitReaction = true;
             State.Fighter2.PendingHitstunFrames = Move1->HitstunFrames;
             State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PositionX >= State.Fighter1.PositionX ? Move1->KnockbackSpeed : -Move1->KnockbackSpeed;
@@ -402,12 +450,12 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
         if (bHit21)
         {
             State.Fighter1.Health = FMath::Max(0, State.Fighter1.Health - Move2->Damage);
-            State.Fighter2.HitstopFramesRemaining = Move2->HitstopFrames;
-            State.Fighter1.HitstopFramesRemaining = Move2->HitstopFrames;
             State.Fighter1.bPendingHitReaction = true;
             State.Fighter1.PendingHitstunFrames = Move2->HitstunFrames;
             State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PositionX >= State.Fighter2.PositionX ? Move2->KnockbackSpeed : -Move2->KnockbackSpeed;
         }
+        State.Fighter1.HitstopFramesRemaining = SharedHitstop;
+        State.Fighter2.HitstopFramesRemaining = SharedHitstop;
     }
     if (State.Fighter1.bGrounded && State.Fighter2.bGrounded
         && State.Fighter1.HitstopFramesRemaining == 0 && State.Fighter2.HitstopFramesRemaining == 0)

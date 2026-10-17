@@ -54,6 +54,23 @@ The eventual game should support:
 
 These are long-term requirements, not instructions to implement these features now. Implement only the scope of the current task while preserving these architectural requirements.
 
+## Combat design contract
+
+Preserve the fixed-60-Hz deterministic, rollback-conscious simulation and read
+the latest milestone documents before changing accepted combat behavior. Read
+`Docs/CombatDesign.md` before substantial combat-system work.
+
+The desired 2.5D combat is visually stable and readable, with relatively few
+simultaneous events but deep, informed decisions. Favor legible commitments and
+initiative over repeated blind guesses or hidden turn structures. Do not assume
+conventional fighting-game mechanics are required merely because they are
+standard. Conventional, directional/active, and hybrid/layered defence are
+currently experimental directions; do not lock the architecture to one without
+an explicit milestone decision. Future tag and assist actions should favor
+strategic commitment and readability over constant overlapping activity.
+Avoid speculative gameplay fields or systems. Existing accepted milestone
+behavior remains authoritative unless a later milestone explicitly changes it.
+
 ## Temporary development launch workaround
 
 On the current development machine, the project must currently be launched with **`-d3d11`**. UE 5.8's DX12 ray-tracing initialization is causing `DXGI_ERROR_DEVICE_REMOVED` / `DXGI_ERROR_DRIVER_INTERNAL_ERROR` on this machine.
