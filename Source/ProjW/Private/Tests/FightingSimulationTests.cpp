@@ -51,6 +51,7 @@ namespace
         Equal &= Test.TestEqual(TEXT("DashDirection"), A.DashDirection, B.DashDirection);
         Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityX"), A.CommittedJumpVelocityX, B.CommittedJumpVelocityX);
         Equal &= Test.TestEqual(TEXT("DoubleJumpUsed"), A.bDoubleJumpUsed, B.bDoubleJumpUsed);
+        Equal &= Test.TestEqual(TEXT("LightAttackHit"), A.bLightAttackHit, B.bLightAttackHit);
         Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;
     }
@@ -60,7 +61,8 @@ namespace
         const bool FrameEqual = Test.TestEqual(TEXT("SimulationFrame"), A.SimulationFrame, B.SimulationFrame);
         const bool FirstEqual = EqualFighter(Test, A.Fighter1, B.Fighter1);
         const bool SecondEqual = EqualFighter(Test, A.Fighter2, B.Fighter2);
-        return FrameEqual && FirstEqual && SecondEqual;
+        const bool HitsEqual = Test.TestEqual(TEXT("HitEventCount"), A.HitEventCount, B.HitEventCount);
+        return FrameEqual && FirstEqual && SecondEqual && HitsEqual;
     }
 }
 
@@ -172,9 +174,12 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
 
     const FMatchState BeforeUnused = State;
     FMatchState Neutral = State;
-    FFightingSimulation::SimulateFrame(State, Input(0x3f0u), Input(0x3f0u));
+    // Light is now actionable in Milestone 4A. Keep this legacy movement
+    // invariant focused on inert action bits rather than accidentally starting
+    // a Light attack during the state comparison.
+    FFightingSimulation::SimulateFrame(State, Input(0x3e0u), Input(0x3e0u));
     FFightingSimulation::SimulateFrame(Neutral, {}, {});
-    TestEqual(TEXT("Action inputs recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x3f0));
+    TestEqual(TEXT("Inert action inputs recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x3e0));
     Neutral.Fighter1.PreviousInput = State.Fighter1.PreviousInput;
     Neutral.Fighter2.PreviousInput = State.Fighter2.PreviousInput;
     Neutral.Fighter1.PressedInput = State.Fighter1.PressedInput;

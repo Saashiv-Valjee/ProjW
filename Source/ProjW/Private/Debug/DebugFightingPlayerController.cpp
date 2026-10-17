@@ -30,9 +30,9 @@ FFighterInput ADebugFightingPlayerController::BuildFrameInput() const
     Add(EKeys::D, EFighterInputButton::Right);
     Add(EKeys::W, EFighterInputButton::Up);
     Add(EKeys::S, EFighterInputButton::Down);
-    Add(EKeys::J, EFighterInputButton::Light);
-    Add(EKeys::K, EFighterInputButton::Medium);
-    Add(EKeys::L, EFighterInputButton::Heavy);
+    Add(EKeys::NumPadSeven, EFighterInputButton::Light);
+    Add(EKeys::NumPadEight, EFighterInputButton::Medium);
+    Add(EKeys::NumPadNine, EFighterInputButton::Heavy);
     Add(EKeys::U, EFighterInputButton::Special);
     Add(EKeys::I, EFighterInputButton::Assist1);
     Add(EKeys::O, EFighterInputButton::Assist2);

@@ -48,7 +48,17 @@ enum class EFighterState : uint8
     BackDash,
     JumpStartup,
     Jumping,
-    DoubleJumping
+    DoubleJumping,
+    LightAttackStartup,
+    LightAttackActive,
+    LightAttackRecovery
+};
+
+struct FSimBox
+{
+    int32 MinX = 0, MaxX = 0, MinY = 0, MaxY = 0;
+    constexpr bool Overlaps(const FSimBox& Other) const
+    { return MinX < Other.MaxX && MaxX > Other.MinX && MinY < Other.MaxY && MaxY > Other.MinY; }
 };
 
 // X is horizontal; Y is height on the fixed gameplay plane. Ground is Y = 0.
@@ -79,6 +89,7 @@ struct FFighterState
     int32 CommittedJumpVelocityX = 0;
     // False during startup/normal jump; true after the one allowed double jump.
     bool bDoubleJumpUsed = false;
+    bool bLightAttackHit = false;
     bool operator==(const FFighterState&) const = default;
 };
 
@@ -89,6 +100,7 @@ struct FMatchState
     uint64 SimulationFrame = 0;
     FFighterState Fighter1;
     FFighterState Fighter2;
+    uint32 HitEventCount = 0;
     bool operator==(const FMatchState&) const = default;
 };
 static_assert(std::is_trivially_copyable<FMatchState>::value, "Snapshots must be value-copyable");

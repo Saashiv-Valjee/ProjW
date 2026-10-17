@@ -9,6 +9,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 ADebugMatchDriver::ADebugMatchDriver()
 {
@@ -73,7 +74,7 @@ void ADebugMatchDriver::BeginPlay()
             Controller->SetViewTarget(Camera);
         }
     }
-    UE_LOG(LogTemp, Display, TEXT("Debug match ready: 60 Hz; P1 WASD / JKL UIO; X->X, Y->Z / 1024; no collision authority."));
+    UE_LOG(LogTemp, Display, TEXT("Debug match ready: 60 Hz; P1 WASD / Numpad789 UIO; deterministic combat boxes."));
 }
 
 void ADebugMatchDriver::Tick(float DeltaSeconds)
@@ -95,4 +96,16 @@ void ADebugMatchDriver::Tick(float DeltaSeconds)
     }
     if (Fighter1Visual) { Fighter1Visual->ApplyState(MatchState.Fighter1); }
     if (Fighter2Visual) { Fighter2Visual->ApplyState(MatchState.Fighter2); }
+    for (const FFighterState* Fighter : {&MatchState.Fighter1, &MatchState.Fighter2})
+    {
+        const FSimBox Hurt = FFightingSimulation::GetHurtbox(*Fighter);
+        const FVector HurtCenter((Hurt.MinX + Hurt.MaxX) * 0.5 / 1024.0, 0, (Hurt.MinY + Hurt.MaxY) * 0.5 / 1024.0);
+        DrawDebugBox(GetWorld(), HurtCenter, FVector((Hurt.MaxX-Hurt.MinX)*0.5/1024.0, 8, (Hurt.MaxY-Hurt.MinY)*0.5/1024.0), FColor::Green, false, 0.05f, 0, 1.5f);
+        FSimBox Attack;
+        if (FFightingSimulation::GetLightHitbox(*Fighter, Attack))
+        {
+            const FVector Center((Attack.MinX + Attack.MaxX) * 0.5 / 1024.0, 0, (Attack.MinY + Attack.MaxY) * 0.5 / 1024.0);
+            DrawDebugBox(GetWorld(), Center, FVector((Attack.MaxX-Attack.MinX)*0.5/1024.0, 10, (Attack.MaxY-Attack.MinY)*0.5/1024.0), FColor::Red, false, 0.05f, 0, 2.0f);
+        }
+    }
 }

@@ -27,6 +27,12 @@ namespace
         return State == EFighterState::Jumping || State == EFighterState::DoubleJumping;
     }
 
+    bool IsAttack(EFighterState State)
+    {
+        return State == EFighterState::LightAttackStartup || State == EFighterState::LightAttackActive
+            || State == EFighterState::LightAttackRecovery;
+    }
+
     void ClearTap(FFighterState& Fighter)
     {
         Fighter.LastTapDirection = 0;
@@ -91,7 +97,21 @@ namespace
         EFighterState Next = EFighterState::Idle;
         bool bFreshAerialImpulse = false;
 
-        if (bDashing)
+        if (IsAttack(Fighter.CurrentState))
+        {
+            Fighter.bGrounded = true;
+            Fighter.PositionY = 0;
+            Fighter.VelocityX = 0;
+            Fighter.VelocityY = 0;
+            ClearTap(Fighter);
+            if (Fighter.CurrentState == EFighterState::LightAttackStartup)
+                Next = Fighter.StateFrame < Sim::LightStartupFrames - 1 ? EFighterState::LightAttackStartup : EFighterState::LightAttackActive;
+            else if (Fighter.CurrentState == EFighterState::LightAttackActive)
+                Next = Fighter.StateFrame < Sim::LightActiveFrames - 1 ? EFighterState::LightAttackActive : EFighterState::LightAttackRecovery;
+            else
+                Next = Fighter.StateFrame < Sim::LightRecoveryFrames - 1 ? EFighterState::LightAttackRecovery : (bDown ? EFighterState::Crouching : Direction ? EFighterState::Walking : EFighterState::Idle);
+        }
+        else if (bDashing)
         {
             Next = Fighter.CurrentState;
             ClearTap(Fighter);
@@ -143,7 +163,15 @@ namespace
             Fighter.bDoubleJumpUsed = false;
 
             // A fresh jump press outranks crouch, walking, and a new dash command.
-            if (bJumpPressed)
+            if (Edges.Pressed.IsHeld(EFighterInputButton::Light))
+            {
+                ClearTap(Fighter);
+                Fighter.VelocityX = 0;
+                Fighter.VelocityY = 0;
+                Fighter.bLightAttackHit = false;
+                Next = EFighterState::LightAttackStartup;
+            }
+            else if (bJumpPressed)
             {
                 ClearTap(Fighter);
                 Fighter.CommittedJumpVelocityX = SelectJumpVelocityX(Direction, Fighter.Facing, false);
@@ -248,6 +276,23 @@ namespace
     }
 }
 
+FSimBox FFightingSimulation::GetHurtbox(const FFighterState& Fighter)
+{
+    return {Fighter.PositionX - HurtboxHalfWidth, Fighter.PositionX + HurtboxHalfWidth,
+        Fighter.PositionY, Fighter.PositionY + HurtboxHeight};
+}
+
+bool FFightingSimulation::GetLightHitbox(const FFighterState& Fighter, FSimBox& OutBox)
+{
+    if (Fighter.CurrentState != EFighterState::LightAttackActive) return false;
+    const int32 Sign = static_cast<int32>(Fighter.Facing);
+    const int32 CenterX = Fighter.PositionX + Sign * LightHitboxOffsetX;
+    OutBox = {CenterX - LightHitboxHalfWidth, CenterX + LightHitboxHalfWidth,
+        Fighter.PositionY + LightHitboxOffsetY - LightHitboxHeight / 2,
+        Fighter.PositionY + LightHitboxOffsetY + LightHitboxHeight / 2};
+    return true;
+}
+
 void FFightingSimulation::SimulateFrame(FMatchState& State,
     const FFighterInput& Player1Input, const FFighterInput& Player2Input)
 {
@@ -258,6 +303,13 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
             || State.Fighter2.Facing != EFighterFacing::Right));
     StepFighter(State.Fighter1, Player1Input);
     StepFighter(State.Fighter2, Player2Input);
+    FSimBox Hitbox;
+    if (GetLightHitbox(State.Fighter1, Hitbox) && !State.Fighter1.bLightAttackHit
+        && Hitbox.Overlaps(GetHurtbox(State.Fighter2)))
+    { State.Fighter1.bLightAttackHit = true; ++State.HitEventCount; }
+    if (GetLightHitbox(State.Fighter2, Hitbox) && !State.Fighter2.bLightAttackHit
+        && Hitbox.Overlaps(GetHurtbox(State.Fighter1)))
+    { State.Fighter2.bLightAttackHit = true; ++State.HitEventCount; }
     if (State.Fighter1.bGrounded && State.Fighter2.bGrounded)
     {
         ResolvePush(bFirstIsLeft ? State.Fighter1 : State.Fighter2,

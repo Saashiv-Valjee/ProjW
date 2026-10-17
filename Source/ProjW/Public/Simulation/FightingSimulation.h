@@ -33,6 +33,18 @@ public:
     // Compatibility name for old tests/content; new code uses JumpVerticalSpeed.
     static constexpr int32 JumpSpeed = JumpVerticalSpeed;
     static constexpr int32 Gravity = -SubunitsPerWorldUnit / 2;
+    static constexpr int32 LightStartupFrames = 5;
+    static constexpr int32 LightActiveFrames = 3;
+    static constexpr int32 LightRecoveryFrames = 9;
+    static constexpr int32 HurtboxHalfWidth = 24 * SubunitsPerWorldUnit;
+    static constexpr int32 HurtboxHeight = 100 * SubunitsPerWorldUnit;
+    static constexpr int32 LightHitboxHalfWidth = 28 * SubunitsPerWorldUnit;
+    static constexpr int32 LightHitboxHeight = 50 * SubunitsPerWorldUnit;
+    static constexpr int32 LightHitboxOffsetX = 44 * SubunitsPerWorldUnit;
+    static constexpr int32 LightHitboxOffsetY = 55 * SubunitsPerWorldUnit;
+
+    static FSimBox GetHurtbox(const FFighterState& Fighter);
+    static bool GetLightHitbox(const FFighterState& Fighter, FSimBox& OutBox);
 
     // Exactly one 1/60-second gameplay step. Caller owns scheduling and inputs.
     // Left+right cancel. Grounded Up PRESSED starts a fixed jump startup.
