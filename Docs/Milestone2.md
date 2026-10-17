@@ -1,5 +1,9 @@
 # Milestone 2: playable debug harness
 
+This records the original Milestone 2 harness. Current movement/input semantics
+are documented in [Milestone3A.md](Milestone3A.md); Milestone 3A adds grounded
+crouch, dashes, stage/body constraints and press-only jumping to this harness.
+
 Launch `E:\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe E:\ProjW\ProjW.uproject -d3d11`.
 The project opens the engine Entry map; press Play (Selected Viewport) and click the
 viewport for keyboard focus. Shift+F1 releases the mouse; Escape ends PIE. Use one

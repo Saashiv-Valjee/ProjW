@@ -35,11 +35,7 @@ bool FFixedClockRateTest::RunTest(const FString& Parameters)
         TestEqual(FString::Printf(TEXT("600 steps at %d render FPS"), RenderHz), State.SimulationFrame, uint64(600));
         const auto CheckFighter = [this](const FFighterState& A, const FFighterState& B)
         {
-            TestTrue(TEXT("Every fighter field matches direct fixed-step reference"),
-                A.PositionX == B.PositionX && A.PositionY == B.PositionY
-                && A.VelocityX == B.VelocityX && A.VelocityY == B.VelocityY
-                && A.Facing == B.Facing && A.bGrounded == B.bGrounded && A.Health == B.Health
-                && A.CurrentState == B.CurrentState && A.StateFrame == B.StateFrame);
+            TestTrue(TEXT("Every fighter field matches direct fixed-step reference"), A == B);
         };
         CheckFighter(State.Fighter1, Reference.Fighter1);
         CheckFighter(State.Fighter2, Reference.Fighter2);

@@ -42,6 +42,11 @@ void ADebugFighterActor::SetColor(const FLinearColor& Color)
 
 void ADebugFighterActor::ApplyState(const FFighterState& State)
 {
+    // Presentation-only crouch. Feet and authoritative dimensions do not change.
+    const bool Crouched = State.CurrentState == EFighterState::Crouching;
+    Body->SetRelativeScale3D(FVector(0.4, 0.45, Crouched ? 0.55 : 1.0));
+    Body->SetRelativeLocation(FVector(0, 0, Crouched ? 27.5 : 50));
+    Nose->SetRelativeLocation(FVector(32, 0, Crouched ? 40 : 75));
     const double Units = FFightingSimulation::SubunitsPerWorldUnit;
     SetActorLocationAndRotation(FVector(State.PositionX / Units, 0, State.PositionY / Units),
         FRotator(0, State.Facing == EFighterFacing::Right ? 0 : 180, 0), false, nullptr,

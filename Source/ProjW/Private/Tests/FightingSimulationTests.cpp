@@ -43,6 +43,13 @@ namespace
         Equal &= Test.TestEqual(TEXT("Health"), A.Health, B.Health);
         Equal &= Test.TestEqual(TEXT("CurrentState"), static_cast<uint8>(A.CurrentState), static_cast<uint8>(B.CurrentState));
         Equal &= Test.TestEqual(TEXT("StateFrame"), A.StateFrame, B.StateFrame);
+        Equal &= Test.TestEqual(TEXT("PreviousInput"), A.PreviousInput.Buttons, B.PreviousInput.Buttons);
+        Equal &= Test.TestEqual(TEXT("PressedInput"), A.PressedInput.Buttons, B.PressedInput.Buttons);
+        Equal &= Test.TestEqual(TEXT("ReleasedInput"), A.ReleasedInput.Buttons, B.ReleasedInput.Buttons);
+        Equal &= Test.TestEqual(TEXT("LastTapDirection"), A.LastTapDirection, B.LastTapDirection);
+        Equal &= Test.TestEqual(TEXT("TapAgeFrames"), A.TapAgeFrames, B.TapAgeFrames);
+        Equal &= Test.TestEqual(TEXT("DashDirection"), A.DashDirection, B.DashDirection);
+        Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;
     }
 
@@ -155,16 +162,23 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
 
     const FMatchState BeforeUnused = State;
     FMatchState Neutral = State;
-    FFightingSimulation::SimulateFrame(State, Input(0x3f8u), Input(0x3f8u));
+    FFightingSimulation::SimulateFrame(State, Input(0x3f0u), Input(0x3f0u));
     FFightingSimulation::SimulateFrame(Neutral, {}, {});
+    TestEqual(TEXT("Action inputs recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x3f0));
+    Neutral.Fighter1.PreviousInput = State.Fighter1.PreviousInput;
+    Neutral.Fighter2.PreviousInput = State.Fighter2.PreviousInput;
+    Neutral.Fighter1.PressedInput = State.Fighter1.PressedInput;
+    Neutral.Fighter2.PressedInput = State.Fighter2.PressedInput;
+    Neutral.Fighter1.ReleasedInput = State.Fighter1.ReleasedInput;
+    Neutral.Fighter2.ReleasedInput = State.Fighter2.ReleasedInput;
     EqualMatch(*this, State, Neutral);
     TestEqual(TEXT("Health unchanged"), State.Fighter1.Health, BeforeUnused.Fighter1.Health);
 
     State.Fighter1.PositionX = std::numeric_limits<int32>::max();
     State.Fighter2.PositionX = std::numeric_limits<int32>::min();
     FFightingSimulation::SimulateFrame(State, Input(Bit(EFighterInputButton::Right)), Input(Bit(EFighterInputButton::Left)));
-    TestEqual(TEXT("Positive bound does not overflow"), State.Fighter1.PositionX, std::numeric_limits<int32>::max());
-    TestEqual(TEXT("Negative bound does not overflow"), State.Fighter2.PositionX, std::numeric_limits<int32>::min());
+    TestEqual(TEXT("Positive extreme clamps without overflow"), State.Fighter1.PositionX, FFightingSimulation::MaxFighterX);
+    TestEqual(TEXT("Negative extreme clamps without overflow"), State.Fighter2.PositionX, FFightingSimulation::MinFighterX);
 
     State = InitialState();
     bool WasGrounded = true;
@@ -178,7 +192,7 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
         }
         WasGrounded = State.Fighter1.bGrounded;
     }
-    TestTrue(TEXT("Held Up repeats jumps after landing"), Takeoffs >= 2);
+    TestEqual(TEXT("Held Up does not repeat after landing"), Takeoffs, uint32(1));
     return !HasAnyErrors();
 }
 #endif

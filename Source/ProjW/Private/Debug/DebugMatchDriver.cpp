@@ -32,7 +32,7 @@ void ADebugMatchDriver::BeginPlay()
         Fighter2Visual->ApplyState(MatchState.Fighter2);
     }
 
-    // Stage is visual only; top is Z=0. No physics or stage gameplay bounds.
+    // Stage is visual only; top is Z=0. Simulation constants own gameplay bounds.
     AStaticMeshActor* Floor = GetWorld()->SpawnActor<AStaticMeshActor>();
     if (Floor)
     {
