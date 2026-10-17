@@ -27,7 +27,10 @@ namespace
         return State == EFighterState::Attack;
     }
 
-    bool IsHitstun(EFighterState State) { return State == EFighterState::Hitstun; }
+    bool IsReactionStun(EFighterState State)
+    {
+        return State == EFighterState::Hitstun || State == EFighterState::Blockstun;
+    }
 
     void ClearTap(FFighterState& Fighter)
     {
@@ -92,35 +95,43 @@ namespace
             --Fighter.HitstopFramesRemaining;
             return;
         }
-        bool bEnteredHitstun = false;
-        if (Fighter.bPendingHitReaction && !IsHitstun(Fighter.CurrentState))
+        bool bEnteredReaction = false;
+        if ((Fighter.PendingReaction == EPendingReaction::Hit && Fighter.CurrentState != EFighterState::Hitstun)
+            || (Fighter.PendingReaction == EPendingReaction::Block && Fighter.CurrentState != EFighterState::Blockstun))
         {
-            Fighter.CurrentState = EFighterState::Hitstun;
+            Fighter.CurrentState = Fighter.PendingReaction == EPendingReaction::Hit
+                ? EFighterState::Hitstun : EFighterState::Blockstun;
             Fighter.StateFrame = 0;
             Fighter.CurrentMoveId = EMoveId::None;
             Fighter.MovePhase = EMovePhase::Startup;
-            bEnteredHitstun = true;
+            bEnteredReaction = true;
         }
-        if (IsHitstun(Fighter.CurrentState))
+        if (IsReactionStun(Fighter.CurrentState))
         {
             Fighter.bGrounded = true;
             Fighter.PositionY = 0;
             Fighter.VelocityY = 0;
             Fighter.VelocityX = Fighter.PendingKnockbackVelocityX;
             MoveHorizontal(Fighter);
-            if (bEnteredHitstun)
+            if (Fighter.CurrentState == EFighterState::Blockstun
+                && (Fighter.PositionX == Sim::MinFighterX || Fighter.PositionX == Sim::MaxFighterX)
+                && Fighter.VelocityX == 0)
+            {
+                Fighter.PendingKnockbackVelocityX = 0;
+            }
+            if (bEnteredReaction)
             {
                 // Entry is StateFrame 0; this call performs the first
                 // knockback step without incrementing the state timer.
             }
-            else if (Fighter.StateFrame < static_cast<uint32>(Fighter.PendingHitstunFrames) - 1u)
+            else if (Fighter.StateFrame < static_cast<uint32>(Fighter.PendingReactionFrames) - 1u)
             {
-                SetState(Fighter, EFighterState::Hitstun);
+                SetState(Fighter, Fighter.CurrentState);
             }
             else
             {
-                Fighter.bPendingHitReaction = false;
-                Fighter.PendingHitstunFrames = 0;
+                Fighter.PendingReaction = EPendingReaction::None;
+                Fighter.PendingReactionFrames = 0;
                 Fighter.PendingKnockbackVelocityX = 0;
                 Fighter.VelocityX = 0;
                 const int32 Direction = HorizontalDirection(Input);
@@ -349,7 +360,7 @@ namespace
 
     // Per-frame results only. A future ruleset can classify a valid geometric
     // contact here without changing move progression or pair resolution.
-    enum class EContactOutcome : uint8 { None = 0, Hit = 1 };
+    enum class EContactOutcome : uint8 { None = 0, Hit = 1, Block = 2 };
 
     struct FContactResult
     {
@@ -365,11 +376,21 @@ namespace
             && Hitbox.Overlaps(Sim::GetHurtbox(Defender));
     }
 
-    FContactResult ClassifyBaselineContact(const FFighterState& Attacker, const FFighterState& Defender)
+    FContactResult ClassifyContact(const FFighterState& Attacker, const FFighterState& Defender)
     {
         if (!HasValidGroundedOverlap(Attacker, Defender)) { return {}; }
         // GetMoveHitbox has already checked that the active move ID is valid.
-        return {EContactOutcome::Hit, Sim::FindMoveDefinition(Attacker.CurrentMoveId)};
+        const FMoveDefinition* Move = Sim::FindMoveDefinition(Attacker.CurrentMoveId);
+        const bool bCanGuard = Defender.CurrentState == EFighterState::Idle
+            || Defender.CurrentState == EFighterState::Walking
+            || Defender.CurrentState == EFighterState::Crouching;
+        const EFighterInputButton Away = Defender.Facing == EFighterFacing::Right
+            ? EFighterInputButton::Left : EFighterInputButton::Right;
+        const bool bCrouching = Defender.PreviousInput.IsHeld(EFighterInputButton::Down);
+        const bool bHeightMatches = bCrouching ? Move->GuardHeight == EGuardHeight::Low
+            : Move->GuardHeight == EGuardHeight::High;
+        return {bCanGuard && Defender.PreviousInput.IsHeld(Away) && bHeightMatches
+            ? EContactOutcome::Block : EContactOutcome::Hit, Move};
     }
 }
 
@@ -377,14 +398,17 @@ const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
 {
     static constexpr FMoveDefinition LightMove{
         5, 3, 9, 50, 6, 14, 6 * SubunitsPerWorldUnit,
+        EGuardHeight::High, 5, 10, 3 * SubunitsPerWorldUnit,
         44 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         28 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
     static constexpr FMoveDefinition MediumMove{
         7, 3, 12, 80, 7, 17, 7 * SubunitsPerWorldUnit,
+        EGuardHeight::Low, 8, 13, 4 * SubunitsPerWorldUnit,
         50 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         35 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
     static constexpr FMoveDefinition HeavyMove{
         10, 4, 16, 120, 9, 20, 9 * SubunitsPerWorldUnit,
+        EGuardHeight::High, 12, 16, 5 * SubunitsPerWorldUnit,
         66 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         44 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit};
     switch (MoveId)
@@ -425,34 +449,40 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
             || State.Fighter2.Facing != EFighterFacing::Right));
     StepFighter(State.Fighter1, Player1Input);
     StepFighter(State.Fighter2, Player2Input);
-    const FContactResult Contact12 = ClassifyBaselineContact(State.Fighter1, State.Fighter2);
-    const FContactResult Contact21 = ClassifyBaselineContact(State.Fighter2, State.Fighter1);
-    const bool bHit12 = Contact12.Outcome == EContactOutcome::Hit;
-    const bool bHit21 = Contact21.Outcome == EContactOutcome::Hit;
-    if (bHit12) State.Fighter1.bCurrentMoveConnected = true;
-    if (bHit21) State.Fighter2.bCurrentMoveConnected = true;
-    if (bHit12 || bHit21)
+    const FContactResult Contact12 = ClassifyContact(State.Fighter1, State.Fighter2);
+    const FContactResult Contact21 = ClassifyContact(State.Fighter2, State.Fighter1);
+    const bool bContact12 = Contact12.Outcome != EContactOutcome::None;
+    const bool bContact21 = Contact21.Outcome != EContactOutcome::None;
+    if (bContact12) State.Fighter1.bCurrentMoveConnected = true;
+    if (bContact21) State.Fighter2.bCurrentMoveConnected = true;
+    if (bContact12 || bContact21)
     {
         const FMoveDefinition* Move1 = Contact12.Move;
         const FMoveDefinition* Move2 = Contact21.Move;
-        const uint8 SharedHitstop = bHit12 && bHit21
+        const uint8 SharedHitstop = bContact12 && bContact21
             ? FMath::Max(Move1->HitstopFrames, Move2->HitstopFrames)
-            : bHit12 ? Move1->HitstopFrames : Move2->HitstopFrames;
-        if (bHit12) { ++State.HitEventCount; }
-        if (bHit21) { ++State.HitEventCount; }
-        if (bHit12)
+            : bContact12 ? Move1->HitstopFrames : Move2->HitstopFrames;
+        if (Contact12.Outcome == EContactOutcome::Hit) { ++State.HitEventCount; }
+        if (Contact21.Outcome == EContactOutcome::Hit) { ++State.HitEventCount; }
+        if (bContact12)
         {
-            State.Fighter2.Health = FMath::Max(0, State.Fighter2.Health - Move1->Damage);
-            State.Fighter2.bPendingHitReaction = true;
-            State.Fighter2.PendingHitstunFrames = Move1->HitstunFrames;
-            State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PositionX >= State.Fighter1.PositionX ? Move1->KnockbackSpeed : -Move1->KnockbackSpeed;
+            const bool bBlocked = Contact12.Outcome == EContactOutcome::Block;
+            State.Fighter2.Health = FMath::Max(bBlocked && State.Fighter2.Health > 0 ? 1 : 0,
+                State.Fighter2.Health - (bBlocked ? Move1->ChipDamage : Move1->Damage));
+            State.Fighter2.PendingReaction = bBlocked ? EPendingReaction::Block : EPendingReaction::Hit;
+            State.Fighter2.PendingReactionFrames = bBlocked ? Move1->BlockstunFrames : Move1->HitstunFrames;
+            const int32 Speed = bBlocked ? Move1->BlockPushbackSpeed : Move1->KnockbackSpeed;
+            State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PositionX >= State.Fighter1.PositionX ? Speed : -Speed;
         }
-        if (bHit21)
+        if (bContact21)
         {
-            State.Fighter1.Health = FMath::Max(0, State.Fighter1.Health - Move2->Damage);
-            State.Fighter1.bPendingHitReaction = true;
-            State.Fighter1.PendingHitstunFrames = Move2->HitstunFrames;
-            State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PositionX >= State.Fighter2.PositionX ? Move2->KnockbackSpeed : -Move2->KnockbackSpeed;
+            const bool bBlocked = Contact21.Outcome == EContactOutcome::Block;
+            State.Fighter1.Health = FMath::Max(bBlocked && State.Fighter1.Health > 0 ? 1 : 0,
+                State.Fighter1.Health - (bBlocked ? Move2->ChipDamage : Move2->Damage));
+            State.Fighter1.PendingReaction = bBlocked ? EPendingReaction::Block : EPendingReaction::Hit;
+            State.Fighter1.PendingReactionFrames = bBlocked ? Move2->BlockstunFrames : Move2->HitstunFrames;
+            const int32 Speed = bBlocked ? Move2->BlockPushbackSpeed : Move2->KnockbackSpeed;
+            State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PositionX >= State.Fighter2.PositionX ? Speed : -Speed;
         }
         State.Fighter1.HitstopFramesRemaining = SharedHitstop;
         State.Fighter2.HitstopFramesRemaining = SharedHitstop;

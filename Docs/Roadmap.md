@@ -7,8 +7,8 @@ This sequence is a planning aid, not a fixed delivery contract. Later stages may
 | 5A | Generic Move Foundation | Done |
 | 5B | Three Normal Attacks | Done |
 | 5C | Combat Lab Foundation and design contract | Done |
-| 5D | Combat Grammar Specification | Current |
-| 5E | Blocking Prototype | Planned experiment |
+| 5D | Combat Grammar Specification | Done |
+| 5E | Blocking Prototype | Current implemented prototype |
 | 5F | 3D Pivot / Linear Attack Prototype | Planned experiment |
 | 5G | High/Low Parry and AoE Prototype | Planned experiment |
 | 5H | Combined Combat Lab | Provisional |

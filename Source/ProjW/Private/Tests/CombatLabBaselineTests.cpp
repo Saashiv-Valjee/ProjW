@@ -62,7 +62,7 @@ bool FCombatLabClassificationTest::RunTest(const FString&)
         TestTrue(TEXT("hit consumes this move"), Hit.Fighter1.bCurrentMoveConnected);
         TestEqual(TEXT("damage comes from active move"), Hit.Fighter2.Health, 1000 - Move.Damage);
         TestEqual(TEXT("hitstop comes from active move"), Hit.Fighter2.HitstopFramesRemaining, Move.HitstopFrames);
-        TestEqual(TEXT("pending hitstun comes from active move"), Hit.Fighter2.PendingHitstunFrames, Move.HitstunFrames);
+        TestEqual(TEXT("pending hitstun comes from active move"), Hit.Fighter2.PendingReactionFrames, Move.HitstunFrames);
         TestEqual(TEXT("knockback comes from active move"), Hit.Fighter2.PendingKnockbackVelocityX, Move.KnockbackSpeed);
     }
     return !HasAnyErrors();
@@ -83,8 +83,8 @@ bool FCombatLabTradeTest::RunTest(const FString&)
     TestEqual(TEXT("fighter 1 takes Heavy damage"), State.Fighter1.Health, 880);
     TestEqual(TEXT("fighter 2 takes Light damage"), State.Fighter2.Health, 950);
     TestTrue(TEXT("both attacks connect"), State.Fighter1.bCurrentMoveConnected && State.Fighter2.bCurrentMoveConnected);
-    TestEqual(TEXT("fighter 1 captures Heavy hitstun"), State.Fighter1.PendingHitstunFrames, uint8(20));
-    TestEqual(TEXT("fighter 2 captures Light hitstun"), State.Fighter2.PendingHitstunFrames, uint8(14));
+    TestEqual(TEXT("fighter 1 captures Heavy hitstun"), State.Fighter1.PendingReactionFrames, uint8(20));
+    TestEqual(TEXT("fighter 2 captures Light hitstun"), State.Fighter2.PendingReactionFrames, uint8(14));
     TestEqual(TEXT("fighter 1 receives shared max hitstop"), State.Fighter1.HitstopFramesRemaining, uint8(9));
     TestEqual(TEXT("fighter 2 receives shared max hitstop"), State.Fighter2.HitstopFramesRemaining, uint8(9));
 

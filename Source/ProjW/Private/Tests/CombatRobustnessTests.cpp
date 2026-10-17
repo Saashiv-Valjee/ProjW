@@ -34,7 +34,7 @@ bool FCombatSymmetryTest::RunTest(const FString&)
     TestEqual(TEXT("F1 health mirrored"), A.Fighter1.Health, B.Fighter1.Health); TestEqual(TEXT("F2 health mirrored"), A.Fighter2.Health, B.Fighter2.Health);
     TestEqual(TEXT("F1 attack flag mirrored"), A.Fighter1.bCurrentMoveConnected, B.Fighter1.bCurrentMoveConnected); TestEqual(TEXT("F2 attack flag mirrored"), A.Fighter2.bCurrentMoveConnected, B.Fighter2.bCurrentMoveConnected);
     TestEqual(TEXT("F1 hitstop mirrored"), A.Fighter1.HitstopFramesRemaining, B.Fighter1.HitstopFramesRemaining); TestEqual(TEXT("F2 hitstop mirrored"), A.Fighter2.HitstopFramesRemaining, B.Fighter2.HitstopFramesRemaining);
-    TestEqual(TEXT("F1 pending mirrored"), A.Fighter1.bPendingHitReaction, B.Fighter1.bPendingHitReaction); TestEqual(TEXT("F2 pending mirrored"), A.Fighter2.bPendingHitReaction, B.Fighter2.bPendingHitReaction);
+    TestEqual(TEXT("F1 pending mirrored"), A.Fighter1.PendingReaction, B.Fighter1.PendingReaction); TestEqual(TEXT("F2 pending mirrored"), A.Fighter2.PendingReaction, B.Fighter2.PendingReaction);
     TestEqual(TEXT("knockback signs mirrored"), A.Fighter2.PendingKnockbackVelocityX, -B.Fighter2.PendingKnockbackVelocityX);
     for(int32 I=0;I<8;++I){FFightingSimulation::SimulateFrame(A,{},{});FFightingSimulation::SimulateFrame(B,{},{});} TestEqual(TEXT("hitstun entry mirrored"),A.Fighter2.CurrentState,B.Fighter2.CurrentState);
     for(int32 I=0;I<30;++I){FFightingSimulation::SimulateFrame(A,{},{});FFightingSimulation::SimulateFrame(B,{},{});} TestEqual(TEXT("recovery mirrored"),A.Fighter2.CurrentState,B.Fighter2.CurrentState); return true;

@@ -4,7 +4,7 @@ This document records the current combat identity and questions for later protot
 
 ## Currently accepted implementation
 
-**Implemented.** The prototype has a deterministic fixed-60-Hz integer simulation with copyable/restorable match state; grounded walking, dashes, jumps and double jump; Light, Medium, and Heavy grounded normals; startup/active/recovery; simulation hitboxes and hurtboxes; damage, hitstop, hitstun, knockback, and simultaneous trades. The baseline contact classifier maps valid grounded overlap to `Hit`, and both contacts are classified before consequences. Unlike trades share maximum hitstop. Presentation consumes simulation state. There is no Block, Pivot, Parry, depth-axis movement, AoE rule, chip, combo system, or combat AI.
+**Implemented.** The prototype has a deterministic fixed-60-Hz integer simulation with copyable/restorable match state; grounded walking, dashes, jumps and double jump; Light, Medium, and Heavy grounded normals; startup/active/recovery; simulation hitboxes and hurtboxes; damage, hitstop, hitstun, knockback, and simultaneous trades. Valid grounded overlap is classified transiently as `Hit` or `Block` after guard evaluation, and both directions are classified before consequences. Unlike successful contacts share maximum hitstop. The 5E Combat Lab prototype adds standing/crouching guard, chip, Blockstun, and defender block pushback. Presentation consumes simulation state. There is no Pivot, Parry, depth-axis movement, AoE rule, combo system, or combat AI.
 
 ## Combat identity
 
@@ -30,11 +30,11 @@ Future attacks may differ in trajectory, coverage, tracking, guard relationship,
 
 ## Defensive grammar
 
-**Design direction.** Block, Pivot/Dodge, and Parry are distinct response families that answer different problems. They are not three power tiers of a single action. None is currently implemented.
+**Design direction.** Block, Pivot/Dodge, and Parry are distinct response families that answer different problems. They are not three power tiers of a single action. Block has a 5E Combat Lab implementation; Pivot and Parry remain unimplemented.
 
 ### Block
 
-**Design direction.** Block is reliable basic survival. Standing and crouching defence are expected to matter, with some attacks requiring the appropriate choice. Ordinary successful blocks may take chip damage, reduce the attacker's reward, and still leave some attacker initiative. Advanced defence should not be required merely to survive, but indefinite blocking should not normally be the best strategy. **Undecided:** chip amount and KO behavior, guard damage, blockstun, pushback, advantage, exact attack relationships, and exceptions.
+**Implemented prototype.** Grounded Idle, Walking, or Crouching fighters may guard by holding facing-relative Away; Down + Away selects crouching guard. Standing guard stops prototype High, crouching guard stops prototype Low; the wrong height takes a full Hit. Light and Heavy are prototype High, Medium prototype Low. A Block consumes one attack contact, applies small nonlethal chip (minimum 1 HP), shared move hitstop, then Blockstun and defender-only integer pushback. Attack recovery, Blockstun, and spacing determine initiative without an initiative state. **Design direction.** Block should remain reliable basic survival but concessionary; advanced defence should not be required merely to survive. **Undecided:** final guard taxonomy and move assignments, chip and KO rules, guard damage, blockstun, pushback, advantage, and exceptions. The 5E numbers are tuning values, not final balance.
 
 ### Pivot / Dodge
 

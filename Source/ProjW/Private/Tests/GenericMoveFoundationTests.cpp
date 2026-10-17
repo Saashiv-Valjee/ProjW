@@ -70,7 +70,7 @@ bool FGenericReactionCaptureTest::RunTest(const FString&)
 {
     FMatchState State; PlaceInRange(State); ReachActive(State);
     TestEqual(TEXT("hit recorded"), State.HitEventCount, uint32(1));
-    TestEqual(TEXT("hitstun captured at contact"), State.Fighter2.PendingHitstunFrames, uint8(14));
+    TestEqual(TEXT("hitstun captured at contact"), State.Fighter2.PendingReactionFrames, uint8(14));
     TestEqual(TEXT("knockback captured at contact"), State.Fighter2.PendingKnockbackVelocityX,
         6 * FFightingSimulation::SubunitsPerWorldUnit);
     const FMatchState Snapshot = State;
@@ -85,7 +85,7 @@ bool FGenericReactionCaptureTest::RunTest(const FString&)
     ChangedAttacker.Fighter1.CurrentMoveId = EMoveId::None;
     for (int32 Index = 0; Index < 7; ++Index) FFightingSimulation::SimulateFrame(ChangedAttacker, {}, {});
     TestEqual(TEXT("reaction still enters Hitstun"), ChangedAttacker.Fighter2.CurrentState, EFighterState::Hitstun);
-    TestEqual(TEXT("reaction keeps hitstun duration"), ChangedAttacker.Fighter2.PendingHitstunFrames, uint8(14));
+    TestEqual(TEXT("reaction keeps hitstun duration"), ChangedAttacker.Fighter2.PendingReactionFrames, uint8(14));
     TestEqual(TEXT("reaction keeps knockback"), ChangedAttacker.Fighter2.PendingKnockbackVelocityX,
         6 * FFightingSimulation::SubunitsPerWorldUnit);
     return !HasAnyErrors();
@@ -105,7 +105,7 @@ bool FGenericTradeTest::RunTest(const FString&)
     TestEqual(TEXT("fighter 1 damage"), State.Fighter1.Health, 950);
     TestEqual(TEXT("fighter 2 damage"), State.Fighter2.Health, 950);
     TestTrue(TEXT("both moves connected"), State.Fighter1.bCurrentMoveConnected && State.Fighter2.bCurrentMoveConnected);
-    TestEqual(TEXT("both reactions captured"), State.Fighter1.PendingHitstunFrames, State.Fighter2.PendingHitstunFrames);
+    TestEqual(TEXT("both reactions captured"), State.Fighter1.PendingReactionFrames, State.Fighter2.PendingReactionFrames);
     return !HasAnyErrors();
 }
 
@@ -141,7 +141,7 @@ bool FGenericSnapshotPhasesTest::RunTest(const FString&)
     TestTrue(TEXT("active after contact records hit"), ActiveAfterContact.Fighter1.bCurrentMoveConnected);
     TestEqual(TEXT("recovery phase"), Recovery.Fighter1.MovePhase, EMovePhase::Recovery);
     TestTrue(TEXT("hitstop is frozen"), Hitstop.Fighter2.HitstopFramesRemaining > 0);
-    TestTrue(TEXT("pending reaction survives hitstop"), PendingReaction.Fighter2.bPendingHitReaction);
+    TestTrue(TEXT("pending reaction survives hitstop"), PendingReaction.Fighter2.PendingReaction == EPendingReaction::Hit);
     TestEqual(TEXT("pending reaction follows final frozen frame"), PendingReaction.Fighter2.HitstopFramesRemaining, uint8(0));
     TestEqual(TEXT("reaction enters Hitstun"), Hitstun.Fighter2.CurrentState, EFighterState::Hitstun);
 

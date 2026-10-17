@@ -277,7 +277,7 @@ bool FNormalContactReactionTest::RunTest(const FString&)
         TestTrue(TEXT("contact flag set"), State.Fighter1.bCurrentMoveConnected);
         TestEqual(TEXT("exact damage"), State.Fighter2.Health, 1000 - Move.Damage);
         TestEqual(TEXT("exact hitstop"), State.Fighter2.HitstopFramesRemaining, Move.Hitstop);
-        TestEqual(TEXT("captured hitstun"), State.Fighter2.PendingHitstunFrames, Move.Hitstun);
+        TestEqual(TEXT("captured hitstun"), State.Fighter2.PendingReactionFrames, Move.Hitstun);
         TestEqual(TEXT("positive knockback"), State.Fighter2.PendingKnockbackVelocityX, Move.Knockback);
         for (uint8 Frame = 1; Frame < Move.Active; ++Frame)
         {
@@ -377,9 +377,9 @@ bool FNormalUnlikeTradeTest::RunTest(const FString&)
             1000 - Trade.Second->Damage);
         TestEqual(TEXT("fighter 2 receives first move damage"), State.Fighter2.Health,
             1000 - Trade.First->Damage);
-        TestEqual(TEXT("fighter 1 captures second move hitstun"), State.Fighter1.PendingHitstunFrames,
+        TestEqual(TEXT("fighter 1 captures second move hitstun"), State.Fighter1.PendingReactionFrames,
             Trade.Second->Hitstun);
-        TestEqual(TEXT("fighter 2 captures first move hitstun"), State.Fighter2.PendingHitstunFrames,
+        TestEqual(TEXT("fighter 2 captures first move hitstun"), State.Fighter2.PendingReactionFrames,
             Trade.First->Hitstun);
         TestEqual(TEXT("fighter 1 knockback comes from second move"), State.Fighter1.PendingKnockbackVelocityX,
             -Trade.Second->Knockback);
@@ -400,9 +400,9 @@ bool FNormalUnlikeTradeTest::RunTest(const FString&)
             1000 - Trade.First->Damage);
         TestEqual(TEXT("reversed fighter 2 receives second move damage"), Reversed.Fighter2.Health,
             1000 - Trade.Second->Damage);
-        TestEqual(TEXT("reversed fighter 1 captures first move hitstun"), Reversed.Fighter1.PendingHitstunFrames,
+        TestEqual(TEXT("reversed fighter 1 captures first move hitstun"), Reversed.Fighter1.PendingReactionFrames,
             Trade.First->Hitstun);
-        TestEqual(TEXT("reversed fighter 2 captures second move hitstun"), Reversed.Fighter2.PendingHitstunFrames,
+        TestEqual(TEXT("reversed fighter 2 captures second move hitstun"), Reversed.Fighter2.PendingReactionFrames,
             Trade.Second->Hitstun);
     }
     return !HasAnyErrors();
@@ -420,7 +420,7 @@ bool FNormalSnapshotReplayTest::RunTest(const FString&)
         TestEqual(TEXT("active snapshot"), Snapshots[1].Fighter1.MovePhase, EMovePhase::Active);
         TestEqual(TEXT("recovery snapshot"), Snapshots[2].Fighter1.MovePhase, EMovePhase::Recovery);
         TestTrue(TEXT("hitstop snapshot"), Snapshots[3].Fighter2.HitstopFramesRemaining > 0);
-        TestTrue(TEXT("pending snapshot"), Snapshots[4].Fighter2.bPendingHitReaction);
+        TestTrue(TEXT("pending snapshot"), Snapshots[4].Fighter2.PendingReaction == EPendingReaction::Hit);
         TestEqual(TEXT("pending snapshot is after freeze"), Snapshots[4].Fighter2.HitstopFramesRemaining, uint8(0));
         TestEqual(TEXT("Hitstun snapshot"), Snapshots[5].Fighter2.CurrentState, EFighterState::Hitstun);
         const TCHAR* Labels[] = {TEXT("startup replay"), TEXT("active replay"), TEXT("recovery replay"),

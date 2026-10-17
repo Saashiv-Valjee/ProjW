@@ -41,6 +41,8 @@ struct FFighterInputEdges
 enum class EFighterFacing : int8 { Left = -1, Right = 1 };
 enum class EMoveId : uint8 { None = 0, Light = 1, Medium = 2, Heavy = 3 };
 enum class EMovePhase : uint8 { Startup = 0, Active = 1, Recovery = 2 };
+enum class EGuardHeight : uint8 { High = 0, Low = 1 };
+enum class EPendingReaction : uint8 { None = 0, Hit = 1, Block = 2 };
 enum class EFighterState : uint8
 {
     Idle,
@@ -52,7 +54,8 @@ enum class EFighterState : uint8
     Jumping,
     DoubleJumping,
     Attack,
-    Hitstun
+    Hitstun,
+    Blockstun
 };
 
 struct FSimBox
@@ -94,8 +97,8 @@ struct FFighterState
     bool bDoubleJumpUsed = false;
     bool bCurrentMoveConnected = false;
     uint8 HitstopFramesRemaining = 0;
-    bool bPendingHitReaction = false;
-    uint8 PendingHitstunFrames = 0;
+    EPendingReaction PendingReaction = EPendingReaction::None;
+    uint8 PendingReactionFrames = 0;
     int32 PendingKnockbackVelocityX = 0;
     bool operator==(const FFighterState&) const = default;
 };

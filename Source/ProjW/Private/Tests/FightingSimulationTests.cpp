@@ -55,8 +55,8 @@ namespace
         Equal &= Test.TestEqual(TEXT("DoubleJumpUsed"), A.bDoubleJumpUsed, B.bDoubleJumpUsed);
         Equal &= Test.TestEqual(TEXT("CurrentMoveConnected"), A.bCurrentMoveConnected, B.bCurrentMoveConnected);
         Equal &= Test.TestEqual(TEXT("Hitstop"), A.HitstopFramesRemaining, B.HitstopFramesRemaining);
-        Equal &= Test.TestEqual(TEXT("PendingHitReaction"), A.bPendingHitReaction, B.bPendingHitReaction);
-        Equal &= Test.TestEqual(TEXT("PendingHitstunFrames"), A.PendingHitstunFrames, B.PendingHitstunFrames);
+        Equal &= Test.TestEqual(TEXT("PendingHitReaction"), A.PendingReaction, B.PendingReaction);
+        Equal &= Test.TestEqual(TEXT("PendingReactionFrames"), A.PendingReactionFrames, B.PendingReactionFrames);
         Equal &= Test.TestEqual(TEXT("PendingKnockback"), A.PendingKnockbackVelocityX, B.PendingKnockbackVelocityX);
         Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;

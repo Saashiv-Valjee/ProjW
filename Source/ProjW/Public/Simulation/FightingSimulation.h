@@ -12,6 +12,10 @@ struct FMoveDefinition
     uint8 HitstopFrames;
     uint8 HitstunFrames;
     int32 KnockbackSpeed;
+    EGuardHeight GuardHeight;
+    int32 ChipDamage;
+    uint8 BlockstunFrames;
+    int32 BlockPushbackSpeed;
     int32 HitboxOffsetX;
     int32 HitboxOffsetY;
     int32 HitboxHalfWidth;

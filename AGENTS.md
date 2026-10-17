@@ -64,12 +64,13 @@ The current target is a modern tactical 2.5D fighter: a conceptually 3D arena
 with strong 2D combat readability, visually stable interactions, relatively few
 simultaneous events, and deep, informed decisions. Favor legible commitments and
 initiative over repeated blind guesses or hidden turn structures. Block,
-spatial Pivot/Dodge, and height-specific High/Low Parry are distinct planned
-response families, not stronger versions of one action. Basic Block may involve
-standing/crouching guard, chip, and retained attacker initiative; Pivot is a
-candidate response to committed linear attacks through deliberate depth
-movement; the appropriate High or Low Parry is a candidate response to broad
-threats. None of these are implemented or numerically settled. Prefer clear,
+spatial Pivot/Dodge, and height-specific High/Low Parry are distinct response
+families, not stronger versions of one action. Block is now a Combat Lab
+prototype: facing-relative standing/crouching guard, prototype High/Low move
+assignments, chip, Blockstun, and block pushback. Its values and guard taxonomy
+are not final balance. Pivot and Parry remain unimplemented. Preserve the
+deterministic classify-both-contacts-then-resolve path and captured pending
+reactions. Prefer clear,
 deterministic geometry over arbitrary attack-type rules where practical.
 
 Preserve meaningful alternative styles through bounded optimization. The rough
