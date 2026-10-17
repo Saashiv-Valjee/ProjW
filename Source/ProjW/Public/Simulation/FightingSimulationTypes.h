@@ -7,7 +7,8 @@ enum class EFighterInputButton : uint16
 {
     Left = 1 << 0, Right = 1 << 1, Up = 1 << 2, Down = 1 << 3,
     Light = 1 << 4, Medium = 1 << 5, Heavy = 1 << 6, Special = 1 << 7,
-    Assist1 = 1 << 8, Assist2 = 1 << 9
+    Assist1 = 1 << 8, Assist2 = 1 << 9,
+    PivotPositive = 1 << 10, PivotNegative = 1 << 11
 };
 
 // One player's held buttons for exactly one simulation frame. No device polling.
@@ -55,28 +56,44 @@ enum class EFighterState : uint8
     DoubleJumping,
     Attack,
     Hitstun,
-    Blockstun
+    Blockstun,
+    Pivoting
 };
 
 struct FSimBox
 {
-    int32 MinX = 0, MaxX = 0, MinY = 0, MaxY = 0;
+    int32 MinX = 0, MaxX = 0, MinY = 0, MaxY = 0, MinZ = 0, MaxZ = 0;
     constexpr bool Overlaps(const FSimBox& Other) const
-    { return MinX < Other.MaxX && MaxX > Other.MinX && MinY < Other.MaxY && MaxY > Other.MinY; }
+    { return MinX < Other.MaxX && MaxX > Other.MinX && MinY < Other.MaxY && MaxY > Other.MinY
+        && MinZ < Other.MaxZ && MaxZ > Other.MinZ; }
 };
 
-// X is horizontal; Y is height on the fixed gameplay plane. Ground is Y = 0.
+// Horizontal orientation uses signed fixed-point unit vectors (scale 16384).
+// Contact tests use this box directly; its enclosing AABB is presentation only.
+struct FSimOrientedBox
+{
+    int32 CenterX = 0, CenterZ = 0, MinY = 0, MaxY = 0;
+    int32 AxisX = 16384, AxisZ = 0;
+    int32 HalfForward = 0, HalfLateral = 0;
+    bool Overlaps(const FSimBox& Other) const;
+    FSimBox Bounds() const;
+};
+
+// X/Z are the horizontal arena plane; the fighter pair defines the local axis. Y is height.
 // Positions: 1024 integer subunits/world unit. Velocities: subunits/frame.
 // StateFrame is zero on entry, incremented on each subsequent frame in that state.
 struct FFighterState
 {
+    static constexpr int32 MaxHealth = 1000;
     int32 PositionX = 0;
     int32 PositionY = 0;
+    int32 PositionZ = 0;
     int32 VelocityX = 0;
     int32 VelocityY = 0;
+    int32 VelocityZ = 0;
     EFighterFacing Facing = EFighterFacing::Right;
     bool bGrounded = true;
-    int32 Health = 1000;
+    int32 Health = MaxHealth;
     EFighterState CurrentState = EFighterState::Idle;
     uint32 StateFrame = 0;
     EMoveId CurrentMoveId = EMoveId::None;
@@ -91,8 +108,14 @@ struct FFighterState
     uint8 TapAgeFrames = 0;
     // World-space direction locked on dash entry, zero outside a dash.
     int8 DashDirection = 0;
+    // Signed orbital direction locked on Pivot entry; zero outside Pivot.
+    int8 PivotDirection = 0;
     // Exact world-space horizontal velocity committed for the pending/current jump.
     int32 CommittedJumpVelocityX = 0;
+    int32 CommittedJumpVelocityZ = 0;
+    // Local horizontal attack axis captured on commitment (fixed-point scale 16384).
+    int32 AttackAxisX = 0;
+    int32 AttackAxisZ = 0;
     // False during startup/normal jump; true after the one allowed double jump.
     bool bDoubleJumpUsed = false;
     bool bCurrentMoveConnected = false;
@@ -100,6 +123,7 @@ struct FFighterState
     EPendingReaction PendingReaction = EPendingReaction::None;
     uint8 PendingReactionFrames = 0;
     int32 PendingKnockbackVelocityX = 0;
+    int32 PendingKnockbackVelocityZ = 0;
     bool operator==(const FFighterState&) const = default;
 };
 

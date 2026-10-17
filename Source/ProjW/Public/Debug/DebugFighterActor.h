@@ -15,7 +15,7 @@ class PROJW_API ADebugFighterActor : public AActor
 public:
     ADebugFighterActor();
     void SetColor(const FLinearColor& Color);
-    void ApplyState(const FFighterState& State);
+    void ApplyState(const FFighterState& State, const FFighterState& Opponent);
 private:
     UPROPERTY() TObjectPtr<UStaticMeshComponent> Body;
     UPROPERTY() TObjectPtr<UStaticMeshComponent> Nose;

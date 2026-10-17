@@ -36,5 +36,7 @@ FFighterInput ADebugFightingPlayerController::BuildFrameInput() const
     Add(EKeys::U, EFighterInputButton::Special);
     Add(EKeys::I, EFighterInputButton::Assist1);
     Add(EKeys::O, EFighterInputButton::Assist2);
+    Add(EKeys::Q, EFighterInputButton::PivotPositive);
+    Add(EKeys::E, EFighterInputButton::PivotNegative);
     return Input;
 }

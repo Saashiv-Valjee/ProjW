@@ -35,7 +35,7 @@ namespace
 
     bool InBounds(const FFighterState& F)
     {
-        return F.PositionX >= Sim::MinFighterX && F.PositionX <= Sim::MaxFighterX;
+        return Sim::IsInsideArena(F.PositionX, F.PositionZ);
     }
 
     bool CheckDash(FAutomationTestBase& Test, bool Forward)

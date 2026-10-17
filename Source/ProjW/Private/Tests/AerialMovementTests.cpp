@@ -44,7 +44,7 @@ namespace
 
     bool InBounds(const FFighterState& Fighter)
     {
-        return Fighter.PositionX >= Sim::MinFighterX && Fighter.PositionX <= Sim::MaxFighterX;
+        return Sim::IsInsideArena(Fighter.PositionX, Fighter.PositionZ);
     }
 
     bool IsAerialState(EFighterState State)

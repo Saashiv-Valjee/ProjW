@@ -36,8 +36,10 @@ namespace
         bool Equal = true;
         Equal &= Test.TestEqual(TEXT("PositionX"), A.PositionX, B.PositionX);
         Equal &= Test.TestEqual(TEXT("PositionY"), A.PositionY, B.PositionY);
+        Equal &= Test.TestEqual(TEXT("PositionZ"), A.PositionZ, B.PositionZ);
         Equal &= Test.TestEqual(TEXT("VelocityX"), A.VelocityX, B.VelocityX);
         Equal &= Test.TestEqual(TEXT("VelocityY"), A.VelocityY, B.VelocityY);
+        Equal &= Test.TestEqual(TEXT("VelocityZ"), A.VelocityZ, B.VelocityZ);
         Equal &= Test.TestEqual(TEXT("Facing"), static_cast<int8>(A.Facing), static_cast<int8>(B.Facing));
         Equal &= Test.TestEqual(TEXT("Grounded"), A.bGrounded, B.bGrounded);
         Equal &= Test.TestEqual(TEXT("Health"), A.Health, B.Health);
@@ -51,13 +53,18 @@ namespace
         Equal &= Test.TestEqual(TEXT("LastTapDirection"), A.LastTapDirection, B.LastTapDirection);
         Equal &= Test.TestEqual(TEXT("TapAgeFrames"), A.TapAgeFrames, B.TapAgeFrames);
         Equal &= Test.TestEqual(TEXT("DashDirection"), A.DashDirection, B.DashDirection);
+        Equal &= Test.TestEqual(TEXT("PivotDirection"), A.PivotDirection, B.PivotDirection);
         Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityX"), A.CommittedJumpVelocityX, B.CommittedJumpVelocityX);
+        Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityZ"), A.CommittedJumpVelocityZ, B.CommittedJumpVelocityZ);
+        Equal &= Test.TestEqual(TEXT("AttackAxisX"), A.AttackAxisX, B.AttackAxisX);
+        Equal &= Test.TestEqual(TEXT("AttackAxisZ"), A.AttackAxisZ, B.AttackAxisZ);
         Equal &= Test.TestEqual(TEXT("DoubleJumpUsed"), A.bDoubleJumpUsed, B.bDoubleJumpUsed);
         Equal &= Test.TestEqual(TEXT("CurrentMoveConnected"), A.bCurrentMoveConnected, B.bCurrentMoveConnected);
         Equal &= Test.TestEqual(TEXT("Hitstop"), A.HitstopFramesRemaining, B.HitstopFramesRemaining);
         Equal &= Test.TestEqual(TEXT("PendingHitReaction"), A.PendingReaction, B.PendingReaction);
         Equal &= Test.TestEqual(TEXT("PendingReactionFrames"), A.PendingReactionFrames, B.PendingReactionFrames);
         Equal &= Test.TestEqual(TEXT("PendingKnockback"), A.PendingKnockbackVelocityX, B.PendingKnockbackVelocityX);
+        Equal &= Test.TestEqual(TEXT("PendingKnockbackZ"), A.PendingKnockbackVelocityZ, B.PendingKnockbackVelocityZ);
         Equal &= Test.TestTrue(TEXT("All authoritative fields"), A == B);
         return Equal;
     }

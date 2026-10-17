@@ -20,6 +20,7 @@ struct FMoveDefinition
     int32 HitboxOffsetY;
     int32 HitboxHalfWidth;
     int32 HitboxHalfHeight;
+    int32 HitboxHalfExtentZ;
 };
 static_assert(std::is_trivially_copyable_v<FMoveDefinition>);
 
@@ -37,11 +38,22 @@ public:
     static constexpr int32 BackDashDurationFrames = 10;
     static constexpr int32 ForwardDashSpeed = 10 * SubunitsPerWorldUnit;
     static constexpr int32 BackDashSpeed = 8 * SubunitsPerWorldUnit;
-    static constexpr int32 StageLeftBoundary = -500 * SubunitsPerWorldUnit;
-    static constexpr int32 StageRightBoundary = 500 * SubunitsPerWorldUnit;
     static constexpr int32 PushHalfWidth = 20 * SubunitsPerWorldUnit;
-    static constexpr int32 MinFighterX = StageLeftBoundary + PushHalfWidth;
-    static constexpr int32 MaxFighterX = StageRightBoundary - PushHalfWidth;
+    // The floor remains a 480-unit disc. Keep the complete X/Z hurtbox inside
+    // it by constraining fighter centers to a conservative 25-unit footprint
+    // radius (ceil(sqrt(24^2 + 5^2))).
+    static constexpr int32 ArenaRadius = 480 * SubunitsPerWorldUnit;
+    static constexpr int64 ArenaRadiusSquared = static_cast<int64>(ArenaRadius) * ArenaRadius;
+    static constexpr int32 FighterFootprintRadius = 25 * SubunitsPerWorldUnit;
+    static constexpr int32 FighterCenterRadius = ArenaRadius - FighterFootprintRadius;
+    static constexpr int64 FighterCenterRadiusSquared = static_cast<int64>(FighterCenterRadius) * FighterCenterRadius;
+    // Axial extrema for legacy callers; these are not independent X/Z bounds.
+    static constexpr int32 MinFighterX = -FighterCenterRadius;
+    static constexpr int32 MaxFighterX = FighterCenterRadius;
+    static constexpr int32 MinFighterZ = -FighterCenterRadius;
+    static constexpr int32 MaxFighterZ = FighterCenterRadius;
+    static constexpr uint8 PivotDurationFrames = 12;
+    static constexpr int32 AxisScale = 16384;
     static constexpr int32 JumpStartupFrames = 4;
     static constexpr int32 JumpVerticalSpeed = 12 * SubunitsPerWorldUnit;
     static constexpr int32 NeutralJumpHorizontalSpeed = 0;
@@ -56,17 +68,24 @@ public:
     static constexpr int32 Gravity = -SubunitsPerWorldUnit / 2;
     static constexpr int32 HurtboxHalfWidth = 24 * SubunitsPerWorldUnit;
     static constexpr int32 HurtboxHeight = 100 * SubunitsPerWorldUnit;
+    static constexpr int32 HurtboxHalfExtentZ = 5 * SubunitsPerWorldUnit;
 
     // Returns null for None or invalid IDs. Definitions are static and immutable.
     static const FMoveDefinition* FindMoveDefinition(EMoveId MoveId);
     static FSimBox GetHurtbox(const FFighterState& Fighter);
     static bool GetMoveHitbox(const FFighterState& Fighter, FSimBox& OutBox);
+    static bool GetMoveHitVolume(const FFighterState& Fighter, FSimOrientedBox& OutBox);
+    // Tests fighter-center legality using the conservative hurtbox footprint
+    // margin; the visual arena floor remains ArenaRadius.
+    static bool IsInsideArena(int32 X, int32 Z);
+    // Returns true if the intended position was projected onto the disc.
+    static bool ConstrainToArena(int64 IntendedX, int64 IntendedZ, int32& OutX, int32& OutZ);
 
     // Exactly one 1/60-second gameplay step. Caller owns scheduling and inputs.
     // Left+right cancel. Grounded Up PRESSED starts a fixed jump startup.
     // Airborne momentum is committed; one fresh Up press can replace it via double jump.
     // Interpret using entering facing; classify raw double taps on second press.
-    // Intended steps -> stage clamp -> grounded pair push -> facing update.
+    // Intended local-axis steps -> stage clamp -> grounded pair push -> facing update.
     static void SimulateFrame(FMatchState& State,
         const FFighterInput& Player1Input, const FFighterInput& Player2Input);
 };

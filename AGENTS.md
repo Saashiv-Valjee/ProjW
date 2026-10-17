@@ -38,7 +38,7 @@ Unreal Engine is primarily responsible for rendering, skeletal animation, audio,
 
 The eventual game should support:
 
-- 2.5D fighting on a fixed gameplay plane.
+- 2.5D fighting along a local fighter-to-fighter combat axis.
 - 3D skeletal characters.
 - Modern fighting-game movement.
 - Normals and special moves.
@@ -68,10 +68,29 @@ spatial Pivot/Dodge, and height-specific High/Low Parry are distinct response
 families, not stronger versions of one action. Block is now a Combat Lab
 prototype: facing-relative standing/crouching guard, prototype High/Low move
 assignments, chip, Blockstun, and block pushback. Its values and guard taxonomy
-are not final balance. Pivot and Parry remain unimplemented. Preserve the
-deterministic classify-both-contacts-then-resolve path and captured pending
-reactions. Prefer clear,
-deterministic geometry over arbitrary attack-type rules where practical.
+are not final balance. Combat simulation now has deterministic integer X/Y/Z
+space. The fighter pair defines a derived local horizontal combat axis; ordinary
+movement stays effectively one-dimensional along it. Pivot makes a small
+orbital displacement around the opponent, without free 3D roaming or a
+privileged world-Z-zero plane. The Combat Lab arena is an authoritative circular
+disc in horizontal X/Z space, centered at the origin with a 480-world-unit
+radius. Fighter centers use a deterministic 25-unit hurtbox-footprint margin
+so the complete gameplay footprint stays within that floor boundary. Human
+playtesting accepted the physical Pivot, camera hold/recenter, and rotating
+local combat plane after this edge fix. The arena geometry permits diagonal
+relationships but does not grant free 3D
+locomotion or a privileged world-X combat orientation. Diagonal attacks must
+follow their committed local axis with coherent deterministic geometry. Pivot
+physically moves a fighter out of the currently presented 2D plane, so the
+debug camera holds presentation yaw throughout either fighter's Pivot and then
+smoothly recenters to the new local combat axis. Repeated Pivots may rotate
+that plane around the circular arena. Camera transition state is presentation
+only and never moves authoritative fighters. Pivot has no intrinsic
+invulnerability: avoidance comes from strict 3D hit/hurt non-overlap, not
+arbitrary dodgeability flags. Camera and fighter yaw are presentation only.
+Prototype widths and timing are not final. Parry remains unimplemented.
+Preserve rollback-safe state, deterministic 3D overlap, the
+classify-both-contacts-then-resolve path, and captured pending reactions.
 
 Preserve meaningful alternative styles through bounded optimization. The rough
 20% comparison for reasonable choices is a balancing aim, never a simulation

@@ -26,6 +26,13 @@ private:
     FFighterInput LastInput;
     FFixedSimulationClock Clock;
     float RenderFPS = 0;
+    // Debug-camera state is presentation-only and never enters match snapshots.
+    double DisplayedCombatYawDegrees = -90.0;
+    double RecenterStartYawDegrees = -90.0;
+    double RecenterTargetYawDegrees = -90.0;
+    float RecenterElapsedSeconds = 0.0f;
+    bool bCombatYawHeldForPivot = false;
+    bool bRecenteringCombatYaw = false;
     UPROPERTY() TObjectPtr<ADebugFighterActor> Fighter1Visual;
     UPROPERTY() TObjectPtr<ADebugFighterActor> Fighter2Visual;
     UPROPERTY() TObjectPtr<ACameraActor> Camera;
