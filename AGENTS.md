@@ -60,16 +60,25 @@ Preserve the fixed-60-Hz deterministic, rollback-conscious simulation and read
 the latest milestone documents before changing accepted combat behavior. Read
 `Docs/CombatDesign.md` before substantial combat-system work.
 
-The desired 2.5D combat is visually stable and readable, with relatively few
-simultaneous events but deep, informed decisions. Favor legible commitments and
-initiative over repeated blind guesses or hidden turn structures. Do not assume
-conventional fighting-game mechanics are required merely because they are
-standard. Conventional, directional/active, and hybrid/layered defence are
-currently experimental directions; do not lock the architecture to one without
-an explicit milestone decision. Future tag and assist actions should favor
-strategic commitment and readability over constant overlapping activity.
-Avoid speculative gameplay fields or systems. Existing accepted milestone
-behavior remains authoritative unless a later milestone explicitly changes it.
+The current target is a modern tactical 2.5D fighter: a conceptually 3D arena
+with strong 2D combat readability, visually stable interactions, relatively few
+simultaneous events, and deep, informed decisions. Favor legible commitments and
+initiative over repeated blind guesses or hidden turn structures. Block,
+spatial Pivot/Dodge, and height-specific High/Low Parry are distinct planned
+response families, not stronger versions of one action. Basic Block may involve
+standing/crouching guard, chip, and retained attacker initiative; Pivot is a
+candidate response to committed linear attacks through deliberate depth
+movement; the appropriate High or Low Parry is a candidate response to broad
+threats. None of these are implemented or numerically settled. Prefer clear,
+deterministic geometry over arbitrary attack-type rules where practical.
+
+Preserve meaningful alternative styles through bounded optimization. The rough
+20% comparison for reasonable choices is a balancing aim, never a simulation
+constant or guarantee. A future Pulse-style assisted combo path should let
+players with modest execution ability participate in tactical play while manual
+routing retains value. Keep future tag and assist actions strategic and readable.
+Avoid speculative authoritative fields or premature mechanics. Existing accepted
+milestone behavior remains authoritative until explicitly changed.
 
 ## Temporary development launch workaround
 
