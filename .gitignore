@@ -1,0 +1,38 @@
+# Unreal-generated build output and local data (including plugins)
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+
+# Generated IDE projects and local workspace settings
+.vs/
+.idea/
+.vscode/
+*.sln
+*.slnx
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.csproj
+*.csproj.user
+*.code-workspace
+*.xcworkspace/
+*.xcodeproj/
+
+# Local developer assets and collection settings
+/Content/Developers/
+/Content/Collections/
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep Source/, Config/, Content/ assets, Plugins/ source and descriptors,
+# Build/ packaging resources, .uproject, .uplugin, and .vsconfig tracked.
+# Binary-only plugins may need explicit exceptions for their Binaries/ folder.
