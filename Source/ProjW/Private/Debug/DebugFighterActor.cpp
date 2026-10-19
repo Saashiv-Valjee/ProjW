@@ -5,6 +5,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/PoseableMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Simulation/FightingSimulation.h"
@@ -17,7 +18,7 @@ namespace
     enum class EVisualAction : uint8
     {
         Idle, WalkForward, WalkBackward, Crouch, JumpStartup, Jump, DoubleJump,
-        ForwardDash, BackDash, Light, Medium, Heavy, GroundRupture, BlockHigh,
+        ForwardDash, BackDash, Light, Medium, Heavy, GroundRupture, NarrowThrust, BroadSweep, SlowCommittedStrike, BlockHigh,
         BlockLow, BlockstunHigh, BlockstunLow, PivotClockwise, PivotCounterClockwise,
         HighParry, LowParry, ParrySuccess, ParryStun, Hitstun
     };
@@ -87,6 +88,9 @@ namespace
                 Result.Action = Fighter.CurrentMoveId == EMoveId::Light ? EVisualAction::Light
                     : Fighter.CurrentMoveId == EMoveId::Medium ? EVisualAction::Medium
                     : Fighter.CurrentMoveId == EMoveId::GroundRupture ? EVisualAction::GroundRupture
+                    : Fighter.CurrentMoveId == EMoveId::NarrowThrust ? EVisualAction::NarrowThrust
+                    : Fighter.CurrentMoveId == EMoveId::BroadSweep ? EVisualAction::BroadSweep
+                    : Fighter.CurrentMoveId == EMoveId::SlowCommittedStrike ? EVisualAction::SlowCommittedStrike
                     : EVisualAction::Heavy;
                 const FMoveDefinition* Move = Sim::FindMoveDefinition(Fighter.CurrentMoveId);
                 if (Move)
@@ -150,7 +154,14 @@ ADebugFighterActor::ADebugFighterActor()
     FighterMesh->SetGenerateOverlapEvents(false);
     FighterMesh->SetSimulatePhysics(false);
     FighterMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+    FighterMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
     FighterMesh->SetRelativeScale3D(FVector(0.78));
+    CrouchPoseMesh = CreateDefaultSubobject<UPoseableMeshComponent>(TEXT("CrouchPosePresentation"));
+    CrouchPoseMesh->SetupAttachment(RootComponent);
+    CrouchPoseMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    CrouchPoseMesh->SetGenerateOverlapEvents(false);
+    CrouchPoseMesh->SetVisibility(false);
+    CrouchPoseMesh->SetRelativeScale3D(FVector(0.78));
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Sphere(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
@@ -220,6 +231,7 @@ void ADebugFighterActor::SetCharacter(bool bUseQuinn)
     if (USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, Path))
     {
         FighterMesh->SetSkeletalMesh(Mesh);
+        CrouchPoseMesh->SetSkinnedAssetAndUpdate(Mesh);
     }
 }
 
@@ -301,6 +313,9 @@ void ADebugFighterActor::ApplyState(const FFighterState& State, const FFighterSt
         case EVisualAction::Medium: SelectedAnimation = MediumAnimation; break;
         case EVisualAction::Heavy: SelectedAnimation = HeavyAnimation; break;
         case EVisualAction::GroundRupture: SelectedAnimation = GroundRuptureAnimation; break;
+        case EVisualAction::NarrowThrust: SelectedAnimation = LightAnimation; break;
+        case EVisualAction::BroadSweep: SelectedAnimation = HeavyAnimation; break;
+        case EVisualAction::SlowCommittedStrike: SelectedAnimation = GroundRuptureAnimation; break;
         case EVisualAction::BlockHigh: SelectedAnimation = IdleAnimation; break;
         case EVisualAction::HighParry: SelectedAnimation = IdleAnimation; break;
         case EVisualAction::BlockstunHigh: case EVisualAction::Hitstun: SelectedAnimation = HitReactAnimation; break;
@@ -347,8 +362,10 @@ void ADebugFighterActor::ApplyState(const FFighterState& State, const FFighterSt
     // No crouch clip exists in the bundled mannequin set. This compressed,
     // slightly wider low stance is presentation-only and keeps the root/feet
     // close to their standing floor anchor; it does not alter simulation Y.
-    FVector MeshOffset(0, 0, bCrouch ? -18.0 : 0.0);
-    FVector MeshScale = bCrouch ? FVector(0.84, 0.9, 0.54) : FVector(0.78);
+    CrouchPoseBlend = FMath::FInterpConstantTo(CrouchPoseBlend, bCrouch ? 1.0f : 0.0f,
+        PresentationDeltaSeconds, 5.0f);
+    FVector MeshOffset(0, 0, 0);
+    FVector MeshScale(0.78);
     FRotator MeshPose = FRotator::ZeroRotator;
     if (bPivotState)
     {
@@ -367,6 +384,35 @@ void ADebugFighterActor::ApplyState(const FFighterState& State, const FFighterSt
     MeshPose.Yaw = -90.0;
     FighterMesh->SetRelativeRotation(MeshPose);
     FighterMesh->SetRelativeScale3D(MeshScale);
+    const bool bShowCrouchPose = CrouchPoseBlend > 0.001f;
+    if (CrouchPoseMesh && bShowCrouchPose)
+    {
+        CrouchPoseMesh->CopyPoseFromSkeletalComponent(FighterMesh);
+        CrouchPoseMesh->SetRelativeLocation(MeshOffset);
+        CrouchPoseMesh->SetRelativeRotation(MeshPose);
+        CrouchPoseMesh->SetRelativeScale3D(MeshScale);
+        const float Weight = CrouchPoseBlend;
+        const auto AddRotation = [this, Weight](FName Bone, const FRotator& Delta)
+        {
+            if (FighterMesh->GetBoneIndex(Bone) == INDEX_NONE) return;
+            const FRotator Base = CrouchPoseMesh->GetBoneRotationByName(Bone, EBoneSpaces::ComponentSpace);
+            CrouchPoseMesh->SetBoneRotationByName(Bone, Base + Delta * Weight, EBoneSpaces::ComponentSpace);
+        };
+        if (FighterMesh->GetBoneIndex(TEXT("pelvis")) != INDEX_NONE)
+        {
+            FTransform Pelvis = CrouchPoseMesh->GetBoneTransformByName(TEXT("pelvis"), EBoneSpaces::ComponentSpace);
+            Pelvis.AddToTranslation(FVector(0, 0, -24.0f * Weight));
+            CrouchPoseMesh->SetBoneTransformByName(TEXT("pelvis"), Pelvis, EBoneSpaces::ComponentSpace);
+        }
+        AddRotation(TEXT("thigh_l"), FRotator(28, 0, 0));
+        AddRotation(TEXT("thigh_r"), FRotator(28, 0, 0));
+        AddRotation(TEXT("calf_l"), FRotator(-62, 0, 0));
+        AddRotation(TEXT("calf_r"), FRotator(-62, 0, 0));
+        AddRotation(TEXT("spine_01"), FRotator(-10, 0, 0));
+        AddRotation(TEXT("spine_02"), FRotator(-8, 0, 0));
+    }
+    if (CrouchPoseMesh) CrouchPoseMesh->SetVisibility(bShowCrouchPose);
+    FighterMesh->SetVisibility(!bShowCrouchPose);
     TeamMarker->SetVisibility(true);
     TeamMarker->SetRelativeLocation(bCrouch ? FVector(8, 18, 88) : FVector(8, 18, 124));
 

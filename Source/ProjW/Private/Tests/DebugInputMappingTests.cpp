@@ -28,6 +28,9 @@ bool FDebugInputMappingTest::RunTest(const FString&)
     KeyIs(TEXT("P1 V maps GroundRupture"), P1GroundRupture(), EKeys::V);
     KeyIs(TEXT("P1 T maps HighParry"), P1HighParry(), EKeys::T);
     KeyIs(TEXT("P1 G maps LowParry"), P1LowParry(), EKeys::G);
+    KeyIs(TEXT("P1 Z maps NarrowThrust"), P1NarrowThrust(), EKeys::Z);
+    KeyIs(TEXT("P1 X maps BroadSweep"), P1BroadSweep(), EKeys::X);
+    KeyIs(TEXT("P1 B maps SlowCommittedStrike"), P1SlowCommittedStrike(), EKeys::B);
     KeyIs(TEXT("P2 arrows map movement"), P2Left(), EKeys::Left);
     KeyIs(TEXT("P2 arrows map movement right"), P2Right(), EKeys::Right);
     KeyIs(TEXT("P2 Up maps jump"), P2Jump(), EKeys::Up);
@@ -40,11 +43,15 @@ bool FDebugInputMappingTest::RunTest(const FString&)
     KeyIs(TEXT("P2 NumPad 5 maps GroundRupture"), P2GroundRupture(), EKeys::NumPadFive);
     KeyIs(TEXT("P2 NumPad 1 maps HighParry"), P2HighParry(), EKeys::NumPadOne);
     KeyIs(TEXT("P2 NumPad 2 maps LowParry"), P2LowParry(), EKeys::NumPadTwo);
+    KeyIs(TEXT("P2 NumPad 0 maps NarrowThrust"), P2NarrowThrust(), EKeys::NumPadZero);
+    KeyIs(TEXT("P2 NumPad Decimal maps BroadSweep"), P2BroadSweep(), EKeys::Decimal);
+    KeyIs(TEXT("P2 NumPad Add maps SlowCommittedStrike"), P2SlowCommittedStrike(), EKeys::Add);
 
     int8 P1Map = 0;
     FDebugPhysicalInput P1;
     P1.bLight = true; P1.bMedium = true; P1.bHeavy = true;
     P1.bGroundRupture = true; P1.bHighParry = true; P1.bLowParry = true;
+    P1.bNarrowThrust = true; P1.bBroadSweep = true; P1.bSlowCommittedStrike = true;
     P1.bPivotCounterClockwise = true; P1.bPivotClockwise = true;
     FFighterInput P1Actions = BuildPlayer1Input(P1, 1.0, P1Map);
     TestTrue(TEXT("P1 Light has its own action bit"), Has(P1Actions, EFighterInputButton::Light));
@@ -53,6 +60,9 @@ bool FDebugInputMappingTest::RunTest(const FString&)
     TestTrue(TEXT("P1 GroundRupture has its own action bit"), Has(P1Actions, EFighterInputButton::GroundRupture));
     TestTrue(TEXT("P1 HighParry has its own action bit"), Has(P1Actions, EFighterInputButton::HighParry));
     TestTrue(TEXT("P1 LowParry has its own action bit"), Has(P1Actions, EFighterInputButton::LowParry));
+    TestTrue(TEXT("P1 Thrust has its own prototype command"), Has(P1Actions, EFighterInputButton::NarrowThrust));
+    TestTrue(TEXT("P1 Sweep has its own prototype command"), Has(P1Actions, EFighterInputButton::BroadSweep));
+    TestTrue(TEXT("P1 Slow strike has its own prototype command"), Has(P1Actions, EFighterInputButton::SlowCommittedStrike));
     TestTrue(TEXT("P1 Pivot directions remain distinct"), Has(P1Actions, EFighterInputButton::PivotPositive)
         && Has(P1Actions, EFighterInputButton::PivotNegative));
 

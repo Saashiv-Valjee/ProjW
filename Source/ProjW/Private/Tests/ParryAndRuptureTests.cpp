@@ -53,8 +53,8 @@ bool FParryDefinitionsTest::RunTest(const FString&)
         TestEqual(TEXT("rupture damage"), Rupture->Damage, 100);
         TestEqual(TEXT("rupture radius"), Rupture->HitRadius, 112 * U);
         TestEqual(TEXT("rupture is geometric circle"), Rupture->HitVolumeShape, EHitVolumeShape::HorizontalCircle);
-        TestEqual(TEXT("existing attacks use High Parry; no Low Parry target exists yet"),
-            Rupture->ParryHeight, EParryHeight::High);
+        TestEqual(TEXT("GroundRupture is the Low-Parry target"),
+            Rupture->ParryHeight, EParryHeight::Low);
         TestEqual(TEXT("existing Low guard remains distinct"), Rupture->GuardHeight, EGuardHeight::Low);
     }
     return !HasAnyErrors();
@@ -114,8 +114,8 @@ bool FParryHeightMatrixTest::RunTest(const FString&)
         {EMoveId::Medium, EFighterInputButton::LowParry, false},
         {EMoveId::Heavy, EFighterInputButton::HighParry, true},
         {EMoveId::Heavy, EFighterInputButton::LowParry, false},
-        {EMoveId::GroundRupture, EFighterInputButton::HighParry, true},
-        {EMoveId::GroundRupture, EFighterInputButton::LowParry, false}
+        {EMoveId::GroundRupture, EFighterInputButton::HighParry, false},
+        {EMoveId::GroundRupture, EFighterInputButton::LowParry, true}
     };
     for (const FCase& C : Cases)
     {
@@ -348,13 +348,12 @@ bool FGroundRuptureDefenseComparisonTest::RunTest(const FString&)
         FFighterState::MaxHealth - Sim::FindMoveDefinition(EMoveId::GroundRupture)->ChipDamage);
 
     FMatchState Parry = AttackAt(EMoveId::GroundRupture, 70 * U);
-    TestTrue(TEXT("HighParry answers GroundRupture"), StepIntoParry(Parry, EFighterInputButton::HighParry));
+    TestFalse(TEXT("HighParry does not answer GroundRupture"), StepIntoParry(Parry, EFighterInputButton::HighParry));
+    TestEqual(TEXT("wrong-height HighParry takes ordinary GroundRupture hit"),
+        Parry.Fighter2.PendingReaction, EPendingReaction::Hit);
 
     FMatchState LowParry = AttackAt(EMoveId::GroundRupture, 70 * U);
-    TestFalse(TEXT("LowParry has no matching attack target yet"),
-        StepIntoParry(LowParry, EFighterInputButton::LowParry));
-    TestEqual(TEXT("wrong-height LowParry takes ordinary GroundRupture hit"),
-        LowParry.Fighter2.PendingReaction, EPendingReaction::Hit);
+    TestTrue(TEXT("LowParry answers GroundRupture"), StepIntoParry(LowParry, EFighterInputButton::LowParry));
 
     FMatchState Pivot = AttackAt(EMoveId::GroundRupture, 70 * U);
     Step(Pivot, {}, Button(EFighterInputButton::PivotPositive));
@@ -371,17 +370,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLowGuardHeightMatrixTest, "ProjW.Simulation.Bl
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLowGuardHeightMatrixTest::RunTest(const FString&)
 {
-    for (const EMoveId MoveId : {EMoveId::Medium, EMoveId::GroundRupture})
+    for (const EMoveId MoveId : {EMoveId::GroundRupture})
     {
         const FMoveDefinition& Move = *Sim::FindMoveDefinition(MoveId);
-        FMatchState Standing = AttackAt(MoveId, MoveId == EMoveId::Medium ? 60 * U : 70 * U);
+        FMatchState Standing = AttackAt(MoveId, 70 * U);
         Step(Standing, {}, Button(EFighterInputButton::Right)); // Defender faces Left; Right is Away.
         TestEqual(TEXT("standing guard does not block a Low attack"),
             Standing.Fighter2.PendingReaction, EPendingReaction::Hit);
         TestEqual(TEXT("standing guard takes full Low-attack damage"), Standing.Fighter2.Health,
             FFighterState::MaxHealth - Move.Damage);
 
-        FMatchState Crouching = AttackAt(MoveId, MoveId == EMoveId::Medium ? 60 * U : 70 * U);
+        FMatchState Crouching = AttackAt(MoveId, 70 * U);
         const uint16 DownAway = static_cast<uint16>(EFighterInputButton::Down)
             | static_cast<uint16>(EFighterInputButton::Right);
         Step(Crouching, {}, {DownAway});

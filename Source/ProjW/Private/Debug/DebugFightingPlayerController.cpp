@@ -31,6 +31,9 @@ FDebugPhysicalInput ADebugFightingPlayerController::SamplePlayer1Keys() const
     K.bGroundRupture = IsInputKeyDown(P1GroundRupture());
     K.bHighParry = IsInputKeyDown(P1HighParry());
     K.bLowParry = IsInputKeyDown(P1LowParry());
+    K.bNarrowThrust = IsInputKeyDown(P1NarrowThrust());
+    K.bBroadSweep = IsInputKeyDown(P1BroadSweep());
+    K.bSlowCommittedStrike = IsInputKeyDown(P1SlowCommittedStrike());
     return K;
 }
 
@@ -50,6 +53,9 @@ FDebugPhysicalInput ADebugFightingPlayerController::SamplePlayer2Keys() const
     K.bGroundRupture = IsInputKeyDown(P2GroundRupture());
     K.bHighParry = IsInputKeyDown(P2HighParry());
     K.bLowParry = IsInputKeyDown(P2LowParry());
+    K.bNarrowThrust = IsInputKeyDown(P2NarrowThrust());
+    K.bBroadSweep = IsInputKeyDown(P2BroadSweep());
+    K.bSlowCommittedStrike = IsInputKeyDown(P2SlowCommittedStrike());
     return K;
 }
 
@@ -73,13 +79,15 @@ FString ADebugFightingPlayerController::GetInputDiagnosticText() const
     const FDebugPhysicalInput P2 = SamplePlayer2Keys();
     const auto Bits = [](const FFighterInput& I) { return static_cast<uint32>(I.Buttons); };
     return FString::Printf(
-        TEXT("Raw P1 A/D/W/S Q/E R/F/C V T/G=%d%d%d%d %d%d %d%d%d %d %d%d -> %04X; ")
-        TEXT("P2 Arrows KP4/6 7/8/9 5 1/2=%d%d%d%d %d%d %d%d%d %d %d%d -> %04X"),
+        TEXT("Raw P1 A/D/W/S Q/E R/F/C V T/G Z/X/B=%d%d%d%d %d%d %d%d%d %d %d%d %d%d%d -> %04X; ")
+        TEXT("P2 Arrows KP4/6 7/8/9 5 1/2 0/./+=%d%d%d%d %d%d %d%d%d %d %d%d %d%d%d -> %04X"),
         P1.bScreenLeft, P1.bScreenRight, P1.bJump, P1.bCrouch,
         P1.bPivotCounterClockwise, P1.bPivotClockwise,
         P1.bLight, P1.bMedium, P1.bHeavy, P1.bGroundRupture, P1.bHighParry, P1.bLowParry,
+        P1.bNarrowThrust, P1.bBroadSweep, P1.bSlowCommittedStrike,
         Bits(LastPlayer1Input), P2.bScreenLeft, P2.bScreenRight, P2.bJump, P2.bCrouch,
         P2.bPivotCounterClockwise, P2.bPivotClockwise,
         P2.bLight, P2.bMedium, P2.bHeavy, P2.bGroundRupture, P2.bHighParry, P2.bLowParry,
+        P2.bNarrowThrust, P2.bBroadSweep, P2.bSlowCommittedStrike,
         Bits(LastPlayer2Input));
 }

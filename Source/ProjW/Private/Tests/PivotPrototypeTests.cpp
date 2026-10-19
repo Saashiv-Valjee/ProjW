@@ -287,7 +287,7 @@ bool FPivotContactTest::RunTest(const FString&)
     TestEqual(TEXT("Block at Z overlap"), Block.Fighter2.PendingReaction, EPendingReaction::Block);
     FMatchState Wrong = Attack(EMoveId::Medium);
     Step(Wrong, {}, Button(EFighterInputButton::Right));
-    TestEqual(TEXT("wrong-height guard is Hit"), Wrong.Fighter2.PendingReaction, EPendingReaction::Hit);
+    TestEqual(TEXT("standing Away blocks the standing-height Medium"), Wrong.Fighter2.PendingReaction, EPendingReaction::Block);
     FMatchState FailedPivot = Attack(EMoveId::Light);
     Step(FailedPivot, {}, Combined(EFighterInputButton::PivotPositive, EFighterInputButton::Right));
     TestEqual(TEXT("Pivot has no invulnerability or auto-Block"), FailedPivot.Fighter2.PendingReaction, EPendingReaction::Hit);
@@ -493,7 +493,7 @@ bool FPivotStressTest::RunTest(const FString&)
             if (Frame == 15) P1 = Button(EFighterInputButton::GroundRupture);
             else if (Frame == 60) P1 = Button(EFighterInputButton::HighParry);
             else if (Frame == 70 || Frame == 72) P1 = Button(EFighterInputButton::Right);
-            if (Frame == 0 || Frame == 33) P2 = Button(EFighterInputButton::HighParry);
+            if (Frame == 0 || Frame == 33) P2 = Button(EFighterInputButton::LowParry);
             else if (Frame == 50) P2 = Button(EFighterInputButton::Heavy);
         }
         else

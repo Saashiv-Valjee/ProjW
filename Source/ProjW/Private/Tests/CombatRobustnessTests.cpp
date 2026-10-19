@@ -98,10 +98,9 @@ bool FCombatStress100KTest::RunTest(const FString&)
         uint16 P1=0, P2=0;
         if (I < 80)
         {
-            // Deliberate opening: P2 starts then times High Parry against
-            // GroundRupture. P2 subsequently uses Heavy so P1 also demonstrates
-            // a successful High Parry.
-            if (I == 0 || I == 33) P2 = static_cast<uint16>(EFighterInputButton::HighParry);
+            // Deliberate opening: P2 times Low Parry against GroundRupture.
+            // P2 subsequently uses Heavy so P1 demonstrates High Parry.
+            if (I == 0 || I == 33) P2 = static_cast<uint16>(EFighterInputButton::LowParry);
             if (I == 15) P1 = static_cast<uint16>(EFighterInputButton::GroundRupture);
             if (I == 50) P2 = static_cast<uint16>(EFighterInputButton::Heavy);
             if (I == 60) P1 = static_cast<uint16>(EFighterInputButton::HighParry);

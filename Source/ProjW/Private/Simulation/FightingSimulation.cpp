@@ -112,6 +112,9 @@ namespace
         if (Pressed.IsHeld(EFighterInputButton::Medium)) { return EMoveId::Medium; }
         if (Pressed.IsHeld(EFighterInputButton::Light)) { return EMoveId::Light; }
         if (Pressed.IsHeld(EFighterInputButton::GroundRupture)) { return EMoveId::GroundRupture; }
+        if (Pressed.IsHeld(EFighterInputButton::SlowCommittedStrike)) { return EMoveId::SlowCommittedStrike; }
+        if (Pressed.IsHeld(EFighterInputButton::BroadSweep)) { return EMoveId::BroadSweep; }
+        if (Pressed.IsHeld(EFighterInputButton::NarrowThrust)) { return EMoveId::NarrowThrust; }
         return EMoveId::None;
     }
 
@@ -637,7 +640,7 @@ const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
         4 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
     static constexpr FMoveDefinition MediumMove{
         7, 3, 12, 80, 7, 17, 7 * SubunitsPerWorldUnit,
-        EGuardHeight::Low, EParryHeight::High, 8, 13, 4 * SubunitsPerWorldUnit,
+        EGuardHeight::High, EParryHeight::High, 8, 13, 4 * SubunitsPerWorldUnit,
         50 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         35 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit,
         30 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
@@ -649,23 +652,46 @@ const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
         6 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
     static constexpr FMoveDefinition GroundRuptureMove{
         18, 5, 24, 100, 8, 18, 5 * SubunitsPerWorldUnit,
-        EGuardHeight::Low, EParryHeight::High, 10, 16, 3 * SubunitsPerWorldUnit,
+        EGuardHeight::Low, EParryHeight::Low, 10, 16, 3 * SubunitsPerWorldUnit,
         0, 15 * SubunitsPerWorldUnit, 0, 15 * SubunitsPerWorldUnit, 0,
         EHitVolumeShape::HorizontalCircle, GroundRuptureRadius};
+    static constexpr FMoveDefinition NarrowThrustMove{
+        16, 3, 22, 90, 8, 19, 8 * SubunitsPerWorldUnit,
+        EGuardHeight::High, EParryHeight::High, 9, 15, 4 * SubunitsPerWorldUnit,
+        60 * SubunitsPerWorldUnit, 58 * SubunitsPerWorldUnit,
+        42 * SubunitsPerWorldUnit, 24 * SubunitsPerWorldUnit,
+        2 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
+    static constexpr FMoveDefinition BroadSweepMove{
+        13, 4, 20, 85, 7, 18, 6 * SubunitsPerWorldUnit,
+        EGuardHeight::High, EParryHeight::High, 8, 14, 3 * SubunitsPerWorldUnit,
+        52 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
+        40 * SubunitsPerWorldUnit, 18 * SubunitsPerWorldUnit,
+        24 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
+    static constexpr FMoveDefinition SlowCommittedStrikeMove{
+        24, 3, 32, 130, 10, 23, 10 * SubunitsPerWorldUnit,
+        EGuardHeight::High, EParryHeight::High, 13, 19, 5 * SubunitsPerWorldUnit,
+        68 * SubunitsPerWorldUnit, 76 * SubunitsPerWorldUnit,
+        34 * SubunitsPerWorldUnit, 34 * SubunitsPerWorldUnit,
+        12 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
     switch (MoveId)
     {
         case EMoveId::Light: return &LightMove;
         case EMoveId::Medium: return &MediumMove;
         case EMoveId::Heavy: return &HeavyMove;
         case EMoveId::GroundRupture: return &GroundRuptureMove;
+        case EMoveId::NarrowThrust: return &NarrowThrustMove;
+        case EMoveId::BroadSweep: return &BroadSweepMove;
+        case EMoveId::SlowCommittedStrike: return &SlowCommittedStrikeMove;
         default: return nullptr;
     }
 }
 
 FSimBox FFightingSimulation::GetHurtbox(const FFighterState& Fighter)
 {
+    const int32 Height = Fighter.CurrentState == EFighterState::Crouching
+        ? CrouchingHurtboxHeight : HurtboxHeight;
     return {Fighter.PositionX - HurtboxHalfWidth, Fighter.PositionX + HurtboxHalfWidth,
-        Fighter.PositionY, Fighter.PositionY + HurtboxHeight,
+        Fighter.PositionY, Fighter.PositionY + Height,
         Fighter.PositionZ - HurtboxHalfExtentZ, Fighter.PositionZ + HurtboxHalfExtentZ};
 }
 

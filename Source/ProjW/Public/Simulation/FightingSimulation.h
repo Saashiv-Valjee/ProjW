@@ -72,6 +72,7 @@ public:
     static constexpr int32 Gravity = -SubunitsPerWorldUnit / 2;
     static constexpr int32 HurtboxHalfWidth = 24 * SubunitsPerWorldUnit;
     static constexpr int32 HurtboxHeight = 100 * SubunitsPerWorldUnit;
+    static constexpr int32 CrouchingHurtboxHeight = 30 * SubunitsPerWorldUnit;
     static constexpr int32 HurtboxHalfExtentZ = 5 * SubunitsPerWorldUnit;
     static constexpr uint8 ParryActiveFrames = 4;
     static constexpr uint8 ParryRecoveryFrames = 10;

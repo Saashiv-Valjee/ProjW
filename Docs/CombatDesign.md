@@ -4,7 +4,7 @@ This document records the current combat identity and questions for later protot
 
 ## Currently accepted implementation
 
-**Implemented.** The prototype has a deterministic fixed-60-Hz integer simulation with copyable/restorable match state; grounded walking, dashes, jumps and double jump; Light, Medium, and Heavy grounded normals; startup/active/recovery; simulation 3D hit/hurt volumes; damage, hitstop, hitstun, knockback, and simultaneous trades. Valid grounded 3D overlap is classified transiently as `Hit`, `Block`, or `Parry`, and both directions are classified before consequences. Unlike successful contacts share maximum hitstop; a successful 5G Parry uses its fixed six-frame shared freeze and transfers the attacker into ParryStun. The 5E Combat Lab prototype adds standing/crouching guard, chip, Blockstun, and defender block pushback. The accepted 5F Combat Lab prototype adds an authoritative circular disc arena in horizontal X/Z space, a hurtbox-safe fighter-center margin, committed two-direction orbital Pivot without invulnerability, and a derived local combat axis. The accepted 5G Combat Lab experiment adds committed High/Low Parry and one data-driven GroundRupture move using strict radial geometry. Every current move is a High-Parry target; Low Parry has no matching attack until a Low attack is introduced. Guard height and Parry height are separate move metadata, and existing Low Block assignments remain unchanged. GroundRupture is a prototype geometry experiment, not a semantic AoE category. The user accepted the physical Pivot, camera hold/recenter, rotating combat plane, and circular arena after the edge correction. Presentation consumes simulation state. These prototype values are not final balance; unrestricted depth locomotion, combo system, and combat AI remain out of scope.
+**Implemented.** The prototype has a deterministic fixed-60-Hz integer simulation with copyable/restorable match state; grounded walking, dashes, jumps and double jump; Light, Medium, and Heavy grounded normals; startup/active/recovery; simulation 3D hit/hurt volumes; damage, hitstop, hitstun, knockback, and simultaneous trades. Valid grounded 3D overlap is classified transiently as `Hit`, `Block`, or `Parry`, and both directions are classified before consequences. Unlike successful contacts share maximum hitstop; a successful 5G Parry uses its fixed six-frame shared freeze and transfers the attacker into ParryStun. The 5E Combat Lab prototype adds standing/crouching guard, chip, Blockstun, and defender block pushback. The accepted 5F Combat Lab prototype adds an authoritative circular disc arena in horizontal X/Z space, a hurtbox-safe fighter-center margin, committed two-direction orbital Pivot without invulnerability, and a derived local combat axis. The accepted 5G Combat Lab experiment adds committed High/Low Parry and one data-driven GroundRupture move using strict radial geometry. A later clarification assigns Low Parry to GroundRupture; Light, Medium, and Heavy remain High-Parry targets. Human-accepted 5H adds three committed attack geometries and authoritative crouching hurtbox geometry so standing-height attacks can be ducked. The procedural crouch remains a known temporary presentation weakness as the project moves toward authored character animation. GroundRupture is the only Low-Parry target; BroadSweep retains broad lateral coverage with standing-height geometry and High Parry. Guard height, Parry height, and physical vertical geometry are distinct properties. GroundRupture is a prototype geometry experiment, not a semantic AoE category. The user accepted the physical Pivot, camera hold/recenter, rotating combat plane, and circular arena after the edge correction. Presentation consumes simulation state. These prototype values are not final balance; unrestricted depth locomotion, combo system, and combat AI remain out of scope.
 
 ## Combat identity
 
@@ -12,7 +12,7 @@ This document records the current combat identity and questions for later protot
 
 Combat should be visually stable and readable, with comparatively low simultaneous-event density and high decision density. Avoid unexplained displacement, excessive side switching, constant overlapping assists or effects, jittery silhouettes, routine very long noninteractive combos, and execution barriers that keep less technical players out of the tactical game. Players should broadly understand an opponent's commitment, available response families, initiative, and why an exchange resolved as it did. The central uncertainty should be what the opponent chooses, not whether one is secretly allowed to act.
 
-**Design principle.** Turn ownership and available opportunities should be legible even when the outcome of a defensive decision is uncertain. Block is a reliable concession, Pivot is a geometric/spatial response, and Parry is a committed height-specific response. Pivotability should emerge from attack/hurt geometry, not per-move dodge permissions. These are accepted prototype principles; values and final production rules remain open. Milestone 5H is an active Combat Lab exploration of how deliberately varied attack geometry interacts with this existing grammar, not a selection of final balance.
+**Design principle.** Turn ownership and available opportunities should be legible even when the outcome of a defensive decision is uncertain. Block is a reliable concession, Pivot is a geometric/spatial response, and Parry is a committed height-specific response. Pivotability should emerge from attack/hurt geometry, not per-move dodge permissions. These are accepted prototype principles; values and final production rules remain open. Human-accepted Milestone 5H records an attack-geometry exploration, not final balance or a selected production grammar.
 
 ## Bounded optimization and freedom of style
 
@@ -36,7 +36,7 @@ Future attacks may differ in trajectory, coverage, tracking, guard relationship,
 
 ### Block
 
-**Implemented prototype.** Grounded Idle, Walking, or Crouching fighters may guard by holding facing-relative Away; Down + Away selects crouching guard. Standing guard stops prototype High, crouching guard stops prototype Low; the wrong height takes a full Hit. Light and Heavy are prototype High, Medium prototype Low. A Block consumes one attack contact, applies small nonlethal chip (minimum 1 HP), shared move hitstop, then Blockstun and defender-only integer pushback. Attack recovery, Blockstun, and spacing determine initiative without an initiative state. **Design direction.** Block should remain reliable basic survival but concessionary; advanced defence should not be required merely to survive. **Undecided:** final guard taxonomy and move assignments, chip and KO rules, guard damage, blockstun, pushback, advantage, and exceptions. The 5E numbers are tuning values, not final balance.
+**Implemented prototype.** Grounded Idle, Walking, or Crouching fighters may guard by holding facing-relative Away; Down + Away selects crouching guard. Standing guard stops prototype High, crouching guard stops prototype Low; the wrong height takes a full Hit when geometry overlaps. Light, Medium, Heavy, NarrowThrust, BroadSweep, and SlowCommittedStrike are standing-height High-guard attacks; GroundRupture is Low-guard. The five linear profiles can pass above the crouching hurt volume and whiff before guard classification. A Block consumes one attack contact, applies small nonlethal chip (minimum 1 HP), shared move hitstop, then Blockstun and defender-only integer pushback. Attack recovery, Blockstun, and spacing determine initiative without an initiative state. **Design direction.** Block should remain reliable basic survival but concessionary; advanced defence should not be required merely to survive. **Undecided:** final guard taxonomy and move assignments, chip and KO rules, guard damage, blockstun, pushback, advantage, and exceptions. The 5E numbers are tuning values, not final balance.
 
 ### Pivot / Dodge
 
@@ -76,7 +76,21 @@ Timing variation, spacing, delayed options, conditioning, character properties, 
 
 ## Prototype attack archetypes
 
-These are Combat Lab test concepts, not final character moves. No production damage or frame values are assigned.
+Human-accepted Milestone 5H records three Combat Lab test concepts: a narrow High
+Thrust whose Pivot opportunity comes from strict oriented-volume non-overlap;
+a broad standing-height Sweep whose lateral coverage can catch the same Pivot; and a slow,
+raised committed strike with meaningful whiff recovery. They are immutable
+move definitions using the existing geometry and response rules, not final
+character moves. Their values and the GroundRupture matchup remain prototype
+questions, not production balance or a selected combat grammar. See
+`Milestone5H.md` for exact data and tests.
+
+GroundRupture remains a Low-Parry target with its existing Low guard metadata
+and radial volume unchanged. Light, Medium, and Heavy remain High-Parry targets
+and their standing-height hit volumes pass over the new crouching hurtbox.
+BroadSweep is a High-Parry target with broad lateral coverage. GroundRupture
+remains the sole Low-Parry target. Guard height, Parry height, and physical
+vertical geometry remain distinct move properties.
 
 | Test archetype | Readable information | Likely basic response | Likely advanced response | Decision to test | Unknowns |
 | --- | --- | --- | --- | --- | --- |
@@ -84,7 +98,7 @@ These are Combat Lab test concepts, not final character moves. No production dam
 | Low sweep | Low trajectory and commitment | Crouching Block | Spacing, timed response, or punish | Can a low threat be recognized without a blind guess? | Startup cue, recovery, tracking |
 | Axe kick / committed linear Heavy | Large vertical line and committed arc | Survival Block if valid | Directional Pivot off the line | Does geometry reward a readable spatial read? | Vertical coverage, tracking, Pivot window |
 | Straight thrust / committed linear Heavy | Narrow forward trajectory and recovery | Survival Block if valid | Directional Pivot and positional punish | Does direction matter more than attack label? | Depth width, camera, recovery |
-| Ground stomp / rupture | Expanding low area and source | Low-appropriate Block if valid | Low Parry | Can broad low space defeat simple Pivot but reward a height read? | Area growth, timing, escape paths |
+| Ground stomp / rupture | Expanding ground area and source | Low-appropriate Block if valid | Current prototype: Low Parry metadata | How should a future low-area move relate to height-specific Parry? | Area growth, timing, escape paths |
 | High AoE / overhead burst | Broad high area and anticipation | High-appropriate Block if valid | High Parry | Can a high area preserve a distinct response branch? | Area shape, cue, Parry window |
 
 ## Accessibility and Pulse-style assisted combos

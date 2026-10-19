@@ -44,6 +44,9 @@ void ADebugFightingHUD::DrawHUD()
         case EMoveId::Medium: MoveName = TEXT("Medium"); break;
         case EMoveId::Heavy: MoveName = TEXT("Heavy"); break;
         case EMoveId::GroundRupture: MoveName = TEXT("GroundRupture"); break;
+        case EMoveId::NarrowThrust: MoveName = TEXT("NarrowThrust"); break;
+        case EMoveId::BroadSweep: MoveName = TEXT("BroadSweep"); break;
+        case EMoveId::SlowCommittedStrike: MoveName = TEXT("SlowCommittedStrike"); break;
         default: break;
     }
     const EFighterInputButton Away = F.Facing == EFighterFacing::Right
@@ -84,9 +87,9 @@ void ADebugFightingHUD::DrawHUD()
     }
     if (!Driver->IsDetailedHudVisible()) return;
     const FString Text = FString::Printf(
-        TEXT("MILESTONE 5G | Combat Lab: Block / Pivot / High-Low Parry | 60 Hz | Frame: %llu | Render: %.1f FPS\n")
-        TEXT("P1 LEFT: A/D move | W jump | S crouch | Q/E Pivot | R/F/C Light/Medium/Heavy | V rupture | T/G High/Low Parry\n")
-        TEXT("P2 RIGHT: Arrows move | Num 4/6 Pivot | Num 7/8/9 Light/Medium/Heavy | Num 5 rupture | Num 1/2 High/Low Parry\n")
+        TEXT("MILESTONE 5H | Combat Lab prototypes | 60 Hz | Frame: %llu | Render: %.1f FPS\n")
+        TEXT("P1 LEFT: A/D move | W jump | S crouch | Q/E Pivot | R/F/C Light/Medium/Heavy | V rupture | T/G High/Low Parry | Z/X/B Thrust/Sweep/Slow\n")
+        TEXT("P2 RIGHT: Arrows move | Num 4/6 Pivot | Num 7/8/9 Light/Medium/Heavy | Num 5 rupture | Num 1/2 High/Low Parry | Num 0/./+ Thrust/Sweep/Slow\n")
         TEXT("P1 Pos X/Y/Z: (%d, %d, %d)  Vel X/Y/Z: (%d, %d, %d) [integer subunits]\n")
         TEXT("Grounded: %s | State: %s | Pivot: %s | Parry: %s | Move: %s | Phase: %s | StateFrame: %u\n")
         TEXT("Facing: %s | Guard input: %s | Health: %d | Connected: %s | Hits: %u\n")

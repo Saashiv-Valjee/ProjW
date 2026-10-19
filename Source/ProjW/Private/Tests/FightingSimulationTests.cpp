@@ -188,11 +188,11 @@ bool FFightingMovementTest::RunTest(const FString& Parameters)
 
     const FMatchState BeforeUnused = State;
     FMatchState Neutral = State;
-    // The three normals are actionable. Keep this legacy movement invariant
-    // focused on the still-inert Special/Assist1/Assist2 bits.
-    FFightingSimulation::SimulateFrame(State, Input(0x380u), Input(0x380u));
+    // Preserve the legacy inert-bit invariant using the one reserved bit;
+    // Special/Assist aliases now drive the three 5H prototype moves.
+    FFightingSimulation::SimulateFrame(State, Input(0x8000u), Input(0x8000u));
     FFightingSimulation::SimulateFrame(Neutral, {}, {});
-    TestEqual(TEXT("Inert action inputs recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x380));
+    TestEqual(TEXT("Reserved input bit is recorded without gameplay effects"), State.Fighter1.PreviousInput.Buttons, uint16(0x8000));
     Neutral.Fighter1.PreviousInput = State.Fighter1.PreviousInput;
     Neutral.Fighter2.PreviousInput = State.Fighter2.PreviousInput;
     Neutral.Fighter1.PressedInput = State.Fighter1.PressedInput;

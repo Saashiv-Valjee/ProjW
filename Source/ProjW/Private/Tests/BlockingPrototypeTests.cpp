@@ -53,7 +53,7 @@ bool FBlockDefinitionsTest::RunTest(const FString&)
     struct FExpected { EMoveId Id; EGuardHeight Height; int32 Chip; uint8 Frames; int32 Push; };
     const FExpected Cases[] = {
         {EMoveId::Light, EGuardHeight::High, 5, 10, 3 * Unit},
-        {EMoveId::Medium, EGuardHeight::Low, 8, 13, 4 * Unit},
+        {EMoveId::Medium, EGuardHeight::High, 8, 13, 4 * Unit},
         {EMoveId::Heavy, EGuardHeight::High, 12, 16, 5 * Unit}};
     for (const FExpected& Expected : Cases)
     {
@@ -80,12 +80,16 @@ bool FBlockGuardTest::RunTest(const FString&)
             {
                 FMatchState State = Active(Id, bRight);
                 Step(State, {}, Guard(bCrouch, bRight));
-                const bool bCorrect = bCrouch == (Move.GuardHeight == EGuardHeight::Low);
-                TestEqual(TEXT("facing-relative height result"), State.Fighter2.PendingReaction,
-                    bCorrect ? EPendingReaction::Block : EPendingReaction::Hit);
-                TestEqual(TEXT("exact blocked or hit health"), State.Fighter2.Health,
-                    1000 - (bCorrect ? Move.ChipDamage : Move.Damage));
-                TestEqual(TEXT("only hits increment hit count"), State.HitEventCount, bCorrect ? uint32(0) : uint32(1));
+                const bool bGeometricOverlap = !bCrouch; // The accepted standing normals clear the crouch hurtbox.
+                const bool bCorrect = bGeometricOverlap && !bCrouch
+                    && Move.GuardHeight == EGuardHeight::High;
+                TestEqual(TEXT("standing-height normals are ducked; standing Away blocks"),
+                    State.Fighter2.PendingReaction,
+                    bCorrect ? EPendingReaction::Block : bGeometricOverlap ? EPendingReaction::Hit : EPendingReaction::None);
+                TestEqual(TEXT("health follows geometry before guard resolution"), State.Fighter2.Health,
+                    bCorrect ? 1000 - Move.ChipDamage : bGeometricOverlap ? 1000 - Move.Damage : 1000);
+                TestEqual(TEXT("only geometric hits increment hit count"), State.HitEventCount,
+                    bCorrect || !bGeometricOverlap ? uint32(0) : uint32(1));
             }
             FMatchState Toward = Active(Id, bRight);
             Step(Toward, {}, Button(bRight ? EFighterInputButton::Left : EFighterInputButton::Right));

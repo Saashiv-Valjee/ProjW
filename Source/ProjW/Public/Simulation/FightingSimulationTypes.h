@@ -9,7 +9,9 @@ enum class EFighterInputButton : uint16
     Light = 1 << 4, Medium = 1 << 5, Heavy = 1 << 6, Special = 1 << 7,
     Assist1 = 1 << 8, Assist2 = 1 << 9,
     PivotPositive = 1 << 10, PivotNegative = 1 << 11,
-    HighParry = 1 << 12, LowParry = 1 << 13, GroundRupture = 1 << 14
+    HighParry = 1 << 12, LowParry = 1 << 13, GroundRupture = 1 << 14,
+    // 5H prototype commands reuse three currently inert two-byte input bits.
+    NarrowThrust = Special, BroadSweep = Assist1, SlowCommittedStrike = Assist2
 };
 
 // One player's held buttons for exactly one simulation frame. No device polling.
@@ -41,7 +43,11 @@ struct FFighterInputEdges
 };
 
 enum class EFighterFacing : int8 { Left = -1, Right = 1 };
-enum class EMoveId : uint8 { None = 0, Light = 1, Medium = 2, Heavy = 3, GroundRupture = 4 };
+enum class EMoveId : uint8
+{
+    None = 0, Light = 1, Medium = 2, Heavy = 3, GroundRupture = 4,
+    NarrowThrust = 5, BroadSweep = 6, SlowCommittedStrike = 7
+};
 enum class EMovePhase : uint8 { Startup = 0, Active = 1, Recovery = 2 };
 enum class EGuardHeight : uint8 { High = 0, Low = 1 };
 enum class EParryHeight : uint8 { None = 0, High = 1, Low = 2 };

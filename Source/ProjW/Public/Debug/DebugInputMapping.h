@@ -17,6 +17,9 @@ namespace ProjW::DebugInput::Keys
     inline const FKey& P1GroundRupture() { return EKeys::V; }
     inline const FKey& P1HighParry() { return EKeys::T; }
     inline const FKey& P1LowParry() { return EKeys::G; }
+    inline const FKey& P1NarrowThrust() { return EKeys::Z; }
+    inline const FKey& P1BroadSweep() { return EKeys::X; }
+    inline const FKey& P1SlowCommittedStrike() { return EKeys::B; }
 
     inline const FKey& P2Left() { return EKeys::Left; }
     inline const FKey& P2Right() { return EKeys::Right; }
@@ -30,6 +33,9 @@ namespace ProjW::DebugInput::Keys
     inline const FKey& P2GroundRupture() { return EKeys::NumPadFive; }
     inline const FKey& P2HighParry() { return EKeys::NumPadOne; }
     inline const FKey& P2LowParry() { return EKeys::NumPadTwo; }
+    inline const FKey& P2NarrowThrust() { return EKeys::NumPadZero; }
+    inline const FKey& P2BroadSweep() { return EKeys::Decimal; }
+    inline const FKey& P2SlowCommittedStrike() { return EKeys::Add; }
 }
 
 // Presentation-only sample of physical keys. These values are polled from the
@@ -48,6 +54,9 @@ struct FDebugPhysicalInput
     bool bGroundRupture = false;
     bool bHighParry = false;
     bool bLowParry = false;
+    bool bNarrowThrust = false;
+    bool bBroadSweep = false;
+    bool bSlowCommittedStrike = false;
 };
 
 namespace ProjW::DebugInput
@@ -93,6 +102,9 @@ namespace ProjW::DebugInput
         Add(Physical.bGroundRupture, EFighterInputButton::GroundRupture);
         Add(Physical.bHighParry, EFighterInputButton::HighParry);
         Add(Physical.bLowParry, EFighterInputButton::LowParry);
+        Add(Physical.bNarrowThrust, EFighterInputButton::NarrowThrust);
+        Add(Physical.bBroadSweep, EFighterInputButton::BroadSweep);
+        Add(Physical.bSlowCommittedStrike, EFighterInputButton::SlowCommittedStrike);
         return Input;
     }
 

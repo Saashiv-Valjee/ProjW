@@ -6,6 +6,7 @@
 #include "DebugFighterActor.generated.h"
 
 class USkeletalMeshComponent;
+class UPoseableMeshComponent;
 class UStaticMeshComponent;
 class UStaticMesh;
 class UAnimationAsset;
@@ -27,6 +28,7 @@ public:
 
 private:
     UPROPERTY() TObjectPtr<USkeletalMeshComponent> FighterMesh;
+    UPROPERTY() TObjectPtr<UPoseableMeshComponent> CrouchPoseMesh;
     UPROPERTY() TObjectPtr<UStaticMeshComponent> TeamMarker;
     UPROPERTY() TObjectPtr<UStaticMeshComponent> ActionCue;
     UPROPERTY() TObjectPtr<UStaticMeshComponent> GuardCue;
@@ -55,4 +57,5 @@ private:
     UAnimationAsset* CurrentAnimation = nullptr;
     uint8 CurrentVisualAction = 255;
     bool bPresentationBlockstunLow = false;
+    float CrouchPoseBlend = 0.0f;
 };
