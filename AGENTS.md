@@ -88,8 +88,11 @@ that plane around the circular arena. Camera transition state is presentation
 only and never moves authoritative fighters. Pivot has no intrinsic
 invulnerability: avoidance comes from strict 3D hit/hurt non-overlap, not
 arbitrary dodgeability flags. Camera and fighter yaw are presentation only.
-Prototype widths and timing are not final. Parry remains unimplemented.
-Preserve rollback-safe state, deterministic 3D overlap, the
+Prototype widths and timing are not final. High/Low Parry is now a committed,
+height-specific active defense with punishable recovery; GroundRupture is a
+low radial-geometry experiment, not a semantic AoE category. These 5G Combat
+Lab values are not final balance. Preserve rollback-safe state, deterministic
+3D overlap, independent guard/parry classifications, the
 classify-both-contacts-then-resolve path, and captured pending reactions.
 
 Preserve meaningful alternative styles through bounded optimization. The rough
@@ -99,6 +102,13 @@ players with modest execution ability participate in tactical play while manual
 routing retains value. Keep future tag and assist actions strategic and readable.
 Avoid speculative authoritative fields or premature mechanics. Existing accepted
 milestone behavior remains authoritative until explicitly changed.
+
+Make turn ownership and available opportunities legible even when defensive
+outcomes are uncertain. The accepted Combat Lab principles are Block as reliable
+concession, Pivot as a geometric/spatial response, Parry as a committed
+height-specific response, and Pivotability emerging from geometry rather than
+semantic dodge permissions. These are prototype principles, not final
+production balance or rules.
 
 ## Temporary development launch workaround
 

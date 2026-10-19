@@ -70,6 +70,7 @@ bool FCombatStress100KTest::RunTest(const FString&)
     B = A;
     uint32 Hits=0, Hitstop=0, Hitstun=0, Knockback=0, Bounds=0;
     uint32 Walking=0, Jump=0, DoubleJump=0, Dash=0;
+    uint32 HighParry=0, GroundRupture=0;
 
     auto StepAndObserve = [&](uint16 P1, uint16 P2)
     {
@@ -86,29 +87,45 @@ bool FCombatStress100KTest::RunTest(const FString&)
         DoubleJump += A.Fighter1.CurrentState == EFighterState::DoubleJumping || A.Fighter2.CurrentState == EFighterState::DoubleJumping;
         Dash += A.Fighter1.CurrentState == EFighterState::ForwardDash || A.Fighter1.CurrentState == EFighterState::BackDash
             || A.Fighter2.CurrentState == EFighterState::ForwardDash || A.Fighter2.CurrentState == EFighterState::BackDash;
+        HighParry += A.Fighter1.CurrentState == EFighterState::ParrySuccess
+            || A.Fighter2.CurrentState == EFighterState::ParrySuccess;
+        GroundRupture += A.Fighter1.CurrentMoveId == EMoveId::GroundRupture
+            || A.Fighter2.CurrentMoveId == EMoveId::GroundRupture;
     };
 
-    constexpr uint16 Right = static_cast<uint16>(EFighterInputButton::Right);
-    StepAndObserve(Right, 0);
-    StepAndObserve(0, 0);
-    StepAndObserve(Right, 0); // Proven DoubleTap choreography from GroundedMovementTests.
-
-    for (uint32 I = 3; I < 100000; ++I)
+    for (uint32 I = 0; I < 100000; ++I)
     {
         uint16 P1=0, P2=0;
-        const uint32 M=I%240;
-        if(M<20)P1|=Right; else if(M<40)P1|=static_cast<uint16>(EFighterInputButton::Left);
-        if(M==45||M==90)P1|=static_cast<uint16>(EFighterInputButton::Up);
-        if(M==60||M==180)P1|=Light;
-        if(M==120||M==122)P1|=Right;
-        if(M%37==0)P2|=static_cast<uint16>(EFighterInputButton::Left);
-        if(M==75)P2|=Light;
+        if (I < 80)
+        {
+            // Deliberate opening: P2 starts then times High Parry against
+            // GroundRupture. P2 subsequently uses Heavy so P1 also demonstrates
+            // a successful High Parry.
+            if (I == 0 || I == 33) P2 = static_cast<uint16>(EFighterInputButton::HighParry);
+            if (I == 15) P1 = static_cast<uint16>(EFighterInputButton::GroundRupture);
+            if (I == 50) P2 = static_cast<uint16>(EFighterInputButton::Heavy);
+            if (I == 60) P1 = static_cast<uint16>(EFighterInputButton::HighParry);
+            if (I == 70 || I == 72) P1 = static_cast<uint16>(EFighterInputButton::Right);
+        }
+        else
+        {
+            constexpr uint16 Right = static_cast<uint16>(EFighterInputButton::Right);
+            const uint32 M=(I-80)%240;
+            if(M<20)P1|=Right; else if(M<40)P1|=static_cast<uint16>(EFighterInputButton::Left);
+            if(M==45||M==90)P1|=static_cast<uint16>(EFighterInputButton::Up);
+            if(M==60||M==180)P1|=Light;
+            if(M==120||M==122)P1|=Right;
+            if(M%37==0)P2|=static_cast<uint16>(EFighterInputButton::Left);
+            if(M==75)P2|=Light;
+        }
         StepAndObserve(P1, P2);
     }
     TestTrue(TEXT("100k deterministic"),A==B); TestEqual(TEXT("frame count"),A.SimulationFrame,uint64(100000));
     TestTrue(TEXT("stress hit"),Hits>0); TestTrue(TEXT("stress hitstop"),Hitstop>0); TestTrue(TEXT("stress hitstun"),Hitstun>0);
     TestTrue(TEXT("stress knockback"),Knockback>0); TestTrue(TEXT("stress stage bound"),Bounds>0); TestTrue(TEXT("stress walking"),Walking>0);
     TestTrue(TEXT("stress jump"),Jump>0); TestTrue(TEXT("stress double jump"),DoubleJump>0); TestTrue(TEXT("stress dash"),Dash>0);
+    TestTrue(TEXT("stress successful HighParry"), HighParry > 0);
+    TestTrue(TEXT("stress GroundRupture"), GroundRupture > 0);
     return true;
 }
 #endif

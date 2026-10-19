@@ -29,7 +29,8 @@ namespace
 
     bool IsReactionStun(EFighterState State)
     {
-        return State == EFighterState::Hitstun || State == EFighterState::Blockstun;
+        return State == EFighterState::Hitstun || State == EFighterState::Blockstun
+            || State == EFighterState::ParryStun;
     }
 
     uint64 IntegerRoot(uint64 Value)
@@ -110,6 +111,7 @@ namespace
         if (Pressed.IsHeld(EFighterInputButton::Heavy)) { return EMoveId::Heavy; }
         if (Pressed.IsHeld(EFighterInputButton::Medium)) { return EMoveId::Medium; }
         if (Pressed.IsHeld(EFighterInputButton::Light)) { return EMoveId::Light; }
+        if (Pressed.IsHeld(EFighterInputButton::GroundRupture)) { return EMoveId::GroundRupture; }
         return EMoveId::None;
     }
 
@@ -175,14 +177,16 @@ namespace
         }
         bool bEnteredReaction = false;
         if ((Fighter.PendingReaction == EPendingReaction::Hit && Fighter.CurrentState != EFighterState::Hitstun)
-            || (Fighter.PendingReaction == EPendingReaction::Block && Fighter.CurrentState != EFighterState::Blockstun))
+            || (Fighter.PendingReaction == EPendingReaction::Block && Fighter.CurrentState != EFighterState::Blockstun)
+            || (Fighter.PendingReaction == EPendingReaction::Parry && Fighter.CurrentState != EFighterState::ParryStun))
         {
-            Fighter.CurrentState = Fighter.PendingReaction == EPendingReaction::Hit
-                ? EFighterState::Hitstun : EFighterState::Blockstun;
+            Fighter.CurrentState = Fighter.PendingReaction == EPendingReaction::Hit ? EFighterState::Hitstun
+                : Fighter.PendingReaction == EPendingReaction::Block ? EFighterState::Blockstun : EFighterState::ParryStun;
             Fighter.StateFrame = 0;
             Fighter.CurrentMoveId = EMoveId::None;
             Fighter.MovePhase = EMovePhase::Startup;
             Fighter.PivotDirection = 0;
+            Fighter.ParryHeight = EParryHeight::None;
             Fighter.AttackAxisX = 0;
             Fighter.AttackAxisZ = 0;
             bEnteredReaction = true;
@@ -218,6 +222,12 @@ namespace
             }
             return;
         }
+        if (Fighter.CurrentState == EFighterState::ParrySuccess)
+        {
+            Fighter.ParryHeight = EParryHeight::None;
+            SetState(Fighter, EFighterState::Idle);
+            return;
+        }
         if (Fighter.LastTapDirection != 0 && Fighter.TapAgeFrames <= Sim::DashInputWindowFrames)
         {
             ++Fighter.TapAgeFrames;
@@ -234,7 +244,14 @@ namespace
         bool bFreshAerialImpulse = false;
         bool bMovePhaseChanged = false;
 
-        if (Fighter.CurrentState == EFighterState::Pivoting)
+        if (Fighter.CurrentState == EFighterState::Parrying)
+        {
+            Fighter.VelocityX = Fighter.VelocityY = Fighter.VelocityZ = 0;
+            ClearTap(Fighter);
+            if (Fighter.StateFrame < Sim::ParryTotalFrames - 1u) Next = EFighterState::Parrying;
+            else { Fighter.ParryHeight = EParryHeight::None; Next = EFighterState::Idle; }
+        }
+        else if (Fighter.CurrentState == EFighterState::Pivoting)
         {
             Fighter.VelocityX = 0;
             Fighter.VelocityZ = 0;
@@ -350,6 +367,8 @@ namespace
 
             const bool bPivotPositive = Edges.Pressed.IsHeld(EFighterInputButton::PivotPositive);
             const bool bPivotNegative = Edges.Pressed.IsHeld(EFighterInputButton::PivotNegative);
+            const bool bHighParry = Edges.Pressed.IsHeld(EFighterInputButton::HighParry);
+            const bool bLowParry = Edges.Pressed.IsHeld(EFighterInputButton::LowParry);
             const EMoveId PressedMove = SelectPressedMove(Edges.Pressed);
             if (bPivotPositive != bPivotNegative)
             {
@@ -360,6 +379,13 @@ namespace
                 Fighter.PivotDirection = bPivotPositive ? 1 : -1;
                 ApplyPivotOrbit(Fighter, Opponent, 0);
                 Next = EFighterState::Pivoting;
+            }
+            else if (bHighParry != bLowParry)
+            {
+                ClearTap(Fighter);
+                Fighter.VelocityX = Fighter.VelocityY = Fighter.VelocityZ = 0;
+                Fighter.ParryHeight = bHighParry ? EParryHeight::High : EParryHeight::Low;
+                Next = EFighterState::Parrying;
             }
             else if (PressedMove != EMoveId::None)
             {
@@ -520,7 +546,7 @@ namespace
 
     // Per-frame results only. A future ruleset can classify a valid geometric
     // contact here without changing move progression or pair resolution.
-    enum class EContactOutcome : uint8 { None = 0, Hit = 1, Block = 2 };
+    enum class EContactOutcome : uint8 { None = 0, Hit = 1, Block = 2, Parry = 3 };
 
     struct FContactResult
     {
@@ -528,19 +554,31 @@ namespace
         const FMoveDefinition* Move = nullptr;
     };
 
-    bool HasValidGroundedOverlap(const FFighterState& Attacker, const FFighterState& Defender)
+    bool HasValidGroundedOverlap(const FFighterState& Attacker, const FFighterState& Defender,
+        const FMoveDefinition* Move)
     {
-        FSimOrientedBox Hitbox;
-        return !Attacker.bCurrentMoveConnected && Defender.bGrounded
-            && Sim::GetMoveHitVolume(Attacker, Hitbox)
-            && Hitbox.Overlaps(Sim::GetHurtbox(Defender));
+        if (Attacker.bCurrentMoveConnected || !Defender.bGrounded || !Move) return false;
+        const FSimBox Hurtbox = Sim::GetHurtbox(Defender);
+        if (Move->HitVolumeShape == EHitVolumeShape::HorizontalCircle)
+        {
+            FSimRadialVolume Volume;
+            return Sim::GetMoveRadialVolume(Attacker, Volume) && Volume.Overlaps(Hurtbox);
+        }
+        FSimOrientedBox Volume;
+        return Sim::GetMoveHitVolume(Attacker, Volume) && Volume.Overlaps(Hurtbox);
     }
 
     FContactResult ClassifyContact(const FFighterState& Attacker, const FFighterState& Defender)
     {
-        if (!HasValidGroundedOverlap(Attacker, Defender)) { return {}; }
-        // GetMoveHitVolume has already checked that the active move ID is valid.
         const FMoveDefinition* Move = Sim::FindMoveDefinition(Attacker.CurrentMoveId);
+        if (!HasValidGroundedOverlap(Attacker, Defender, Move)) { return {}; }
+        if (Defender.CurrentState == EFighterState::Parrying
+            && Defender.StateFrame < Sim::ParryActiveFrames
+            && ((Defender.ParryHeight == EParryHeight::High && Move->ParryHeight == EParryHeight::High)
+                || (Defender.ParryHeight == EParryHeight::Low && Move->ParryHeight == EParryHeight::Low)))
+        {
+            return {EContactOutcome::Parry, Move};
+        }
         const bool bCanGuard = Defender.CurrentState == EFighterState::Idle
             || Defender.CurrentState == EFighterState::Walking
             || Defender.CurrentState == EFighterState::Crouching;
@@ -593,27 +631,33 @@ const FMoveDefinition* FFightingSimulation::FindMoveDefinition(EMoveId MoveId)
 {
     static constexpr FMoveDefinition LightMove{
         5, 3, 9, 50, 6, 14, 6 * SubunitsPerWorldUnit,
-        EGuardHeight::High, 5, 10, 3 * SubunitsPerWorldUnit,
+        EGuardHeight::High, EParryHeight::High, 5, 10, 3 * SubunitsPerWorldUnit,
         44 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         28 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit,
-        4 * SubunitsPerWorldUnit};
+        4 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
     static constexpr FMoveDefinition MediumMove{
         7, 3, 12, 80, 7, 17, 7 * SubunitsPerWorldUnit,
-        EGuardHeight::Low, 8, 13, 4 * SubunitsPerWorldUnit,
+        EGuardHeight::Low, EParryHeight::High, 8, 13, 4 * SubunitsPerWorldUnit,
         50 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         35 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit,
-        30 * SubunitsPerWorldUnit};
+        30 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
     static constexpr FMoveDefinition HeavyMove{
         10, 4, 16, 120, 9, 20, 9 * SubunitsPerWorldUnit,
-        EGuardHeight::High, 12, 16, 5 * SubunitsPerWorldUnit,
+        EGuardHeight::High, EParryHeight::High, 12, 16, 5 * SubunitsPerWorldUnit,
         66 * SubunitsPerWorldUnit, 55 * SubunitsPerWorldUnit,
         44 * SubunitsPerWorldUnit, 25 * SubunitsPerWorldUnit,
-        6 * SubunitsPerWorldUnit};
+        6 * SubunitsPerWorldUnit, EHitVolumeShape::OrientedBox, 0};
+    static constexpr FMoveDefinition GroundRuptureMove{
+        18, 5, 24, 100, 8, 18, 5 * SubunitsPerWorldUnit,
+        EGuardHeight::Low, EParryHeight::High, 10, 16, 3 * SubunitsPerWorldUnit,
+        0, 15 * SubunitsPerWorldUnit, 0, 15 * SubunitsPerWorldUnit, 0,
+        EHitVolumeShape::HorizontalCircle, GroundRuptureRadius};
     switch (MoveId)
     {
         case EMoveId::Light: return &LightMove;
         case EMoveId::Medium: return &MediumMove;
         case EMoveId::Heavy: return &HeavyMove;
+        case EMoveId::GroundRupture: return &GroundRuptureMove;
         default: return nullptr;
     }
 }
@@ -645,6 +689,19 @@ bool FSimOrientedBox::Overlaps(const FSimBox& Other) const
         && StrictAxis(AxisX, AxisZ) && StrictAxis(-AxisZ, AxisX);
 }
 
+bool FSimRadialVolume::Overlaps(const FSimBox& Other) const
+{
+    if (MinY >= Other.MaxY || MaxY <= Other.MinY || Radius <= 0) return false;
+    const int64 ClosestX = FMath::Clamp(static_cast<int64>(CenterX),
+        static_cast<int64>(Other.MinX), static_cast<int64>(Other.MaxX));
+    const int64 ClosestZ = FMath::Clamp(static_cast<int64>(CenterZ),
+        static_cast<int64>(Other.MinZ), static_cast<int64>(Other.MaxZ));
+    const int64 DX = static_cast<int64>(CenterX) - ClosestX;
+    const int64 DZ = static_cast<int64>(CenterZ) - ClosestZ;
+    const int64 R = Radius;
+    return DX * DX + DZ * DZ < R * R;
+}
+
 FSimBox FSimOrientedBox::Bounds() const
 {
     constexpr int64 Q = FFightingSimulation::AxisScale;
@@ -659,7 +716,7 @@ bool FFightingSimulation::GetMoveHitVolume(const FFighterState& Fighter, FSimOri
 {
     if (Fighter.CurrentState != EFighterState::Attack || Fighter.MovePhase != EMovePhase::Active) return false;
     const FMoveDefinition* Move = FindMoveDefinition(Fighter.CurrentMoveId);
-    if (!Move) return false;
+    if (!Move || Move->HitVolumeShape != EHitVolumeShape::OrientedBox) return false;
     const int32 AX = Fighter.AttackAxisX || Fighter.AttackAxisZ
         ? Fighter.AttackAxisX : static_cast<int32>(Fighter.Facing) * AxisScale;
     const int32 AZ = Fighter.AttackAxisX || Fighter.AttackAxisZ ? Fighter.AttackAxisZ : 0;
@@ -668,6 +725,17 @@ bool FFightingSimulation::GetMoveHitVolume(const FFighterState& Fighter, FSimOri
         Fighter.PositionY + Move->HitboxOffsetY - Move->HitboxHalfHeight,
         Fighter.PositionY + Move->HitboxOffsetY + Move->HitboxHalfHeight,
         AX, AZ, Move->HitboxHalfWidth, Move->HitboxHalfExtentZ};
+    return true;
+}
+
+bool FFightingSimulation::GetMoveRadialVolume(const FFighterState& Fighter, FSimRadialVolume& OutVolume)
+{
+    if (Fighter.CurrentState != EFighterState::Attack || Fighter.MovePhase != EMovePhase::Active) return false;
+    const FMoveDefinition* Move = FindMoveDefinition(Fighter.CurrentMoveId);
+    if (!Move || Move->HitVolumeShape != EHitVolumeShape::HorizontalCircle) return false;
+    OutVolume = {Fighter.PositionX, Fighter.PositionZ,
+        Fighter.PositionY + Move->HitboxOffsetY - Move->HitboxHalfHeight,
+        Fighter.PositionY + Move->HitboxOffsetY + Move->HitboxHalfHeight, Move->HitRadius};
     return true;
 }
 
@@ -703,34 +771,57 @@ void FFightingSimulation::SimulateFrame(FMatchState& State,
     {
         const FMoveDefinition* Move1 = Contact12.Move;
         const FMoveDefinition* Move2 = Contact21.Move;
+        const uint8 Freeze12 = Contact12.Outcome == EContactOutcome::Parry
+            ? ParryHitstopFrames : Move1 ? Move1->HitstopFrames : 0;
+        const uint8 Freeze21 = Contact21.Outcome == EContactOutcome::Parry
+            ? ParryHitstopFrames : Move2 ? Move2->HitstopFrames : 0;
         const uint8 SharedHitstop = bContact12 && bContact21
-            ? FMath::Max(Move1->HitstopFrames, Move2->HitstopFrames)
-            : bContact12 ? Move1->HitstopFrames : Move2->HitstopFrames;
+            ? FMath::Max(Freeze12, Freeze21) : bContact12 ? Freeze12 : Freeze21;
         if (Contact12.Outcome == EContactOutcome::Hit) { ++State.HitEventCount; }
         if (Contact21.Outcome == EContactOutcome::Hit) { ++State.HitEventCount; }
         if (bContact12)
         {
             const bool bBlocked = Contact12.Outcome == EContactOutcome::Block;
-            State.Fighter2.Health = FMath::Max(bBlocked && State.Fighter2.Health > 0 ? 1 : 0,
-                State.Fighter2.Health - (bBlocked ? Move1->ChipDamage : Move1->Damage));
-            State.Fighter2.PendingReaction = bBlocked ? EPendingReaction::Block : EPendingReaction::Hit;
-            State.Fighter2.PendingReactionFrames = bBlocked ? Move1->BlockstunFrames : Move1->HitstunFrames;
-            const int32 Speed = bBlocked ? Move1->BlockPushbackSpeed : Move1->KnockbackSpeed;
-            const FAxis Reaction = Toward(State.Fighter1, State.Fighter2);
-            State.Fighter2.PendingKnockbackVelocityX = Project(Speed, Reaction.X);
-            State.Fighter2.PendingKnockbackVelocityZ = Project(Speed, Reaction.Z);
+            if (Contact12.Outcome == EContactOutcome::Parry)
+            {
+                State.Fighter2.CurrentState = EFighterState::ParrySuccess;
+                State.Fighter1.PendingReaction = EPendingReaction::Parry;
+                State.Fighter1.PendingReactionFrames = ParryStunFrames;
+                State.Fighter1.PendingKnockbackVelocityX = State.Fighter1.PendingKnockbackVelocityZ = 0;
+            }
+            else
+            {
+                State.Fighter2.Health = FMath::Max(bBlocked && State.Fighter2.Health > 0 ? 1 : 0,
+                    State.Fighter2.Health - (bBlocked ? Move1->ChipDamage : Move1->Damage));
+                State.Fighter2.PendingReaction = bBlocked ? EPendingReaction::Block : EPendingReaction::Hit;
+                State.Fighter2.PendingReactionFrames = bBlocked ? Move1->BlockstunFrames : Move1->HitstunFrames;
+                const int32 Speed = bBlocked ? Move1->BlockPushbackSpeed : Move1->KnockbackSpeed;
+                const FAxis Reaction = Toward(State.Fighter1, State.Fighter2);
+                State.Fighter2.PendingKnockbackVelocityX = Project(Speed, Reaction.X);
+                State.Fighter2.PendingKnockbackVelocityZ = Project(Speed, Reaction.Z);
+            }
         }
         if (bContact21)
         {
             const bool bBlocked = Contact21.Outcome == EContactOutcome::Block;
-            State.Fighter1.Health = FMath::Max(bBlocked && State.Fighter1.Health > 0 ? 1 : 0,
-                State.Fighter1.Health - (bBlocked ? Move2->ChipDamage : Move2->Damage));
-            State.Fighter1.PendingReaction = bBlocked ? EPendingReaction::Block : EPendingReaction::Hit;
-            State.Fighter1.PendingReactionFrames = bBlocked ? Move2->BlockstunFrames : Move2->HitstunFrames;
-            const int32 Speed = bBlocked ? Move2->BlockPushbackSpeed : Move2->KnockbackSpeed;
-            const FAxis Reaction = Toward(State.Fighter2, State.Fighter1);
-            State.Fighter1.PendingKnockbackVelocityX = Project(Speed, Reaction.X);
-            State.Fighter1.PendingKnockbackVelocityZ = Project(Speed, Reaction.Z);
+            if (Contact21.Outcome == EContactOutcome::Parry)
+            {
+                State.Fighter1.CurrentState = EFighterState::ParrySuccess;
+                State.Fighter2.PendingReaction = EPendingReaction::Parry;
+                State.Fighter2.PendingReactionFrames = ParryStunFrames;
+                State.Fighter2.PendingKnockbackVelocityX = State.Fighter2.PendingKnockbackVelocityZ = 0;
+            }
+            else
+            {
+                State.Fighter1.Health = FMath::Max(bBlocked && State.Fighter1.Health > 0 ? 1 : 0,
+                    State.Fighter1.Health - (bBlocked ? Move2->ChipDamage : Move2->Damage));
+                State.Fighter1.PendingReaction = bBlocked ? EPendingReaction::Block : EPendingReaction::Hit;
+                State.Fighter1.PendingReactionFrames = bBlocked ? Move2->BlockstunFrames : Move2->HitstunFrames;
+                const int32 Speed = bBlocked ? Move2->BlockPushbackSpeed : Move2->KnockbackSpeed;
+                const FAxis Reaction = Toward(State.Fighter2, State.Fighter1);
+                State.Fighter1.PendingKnockbackVelocityX = Project(Speed, Reaction.X);
+                State.Fighter1.PendingKnockbackVelocityZ = Project(Speed, Reaction.Z);
+            }
         }
         State.Fighter1.HitstopFramesRemaining = SharedHitstop;
         State.Fighter2.HitstopFramesRemaining = SharedHitstop;

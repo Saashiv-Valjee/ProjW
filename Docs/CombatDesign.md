@@ -4,13 +4,15 @@ This document records the current combat identity and questions for later protot
 
 ## Currently accepted implementation
 
-**Implemented.** The prototype has a deterministic fixed-60-Hz integer simulation with copyable/restorable match state; grounded walking, dashes, jumps and double jump; Light, Medium, and Heavy grounded normals; startup/active/recovery; simulation 3D hit/hurt volumes; damage, hitstop, hitstun, knockback, and simultaneous trades. Valid grounded 3D overlap is classified transiently as `Hit` or `Block` after guard evaluation, and both directions are classified before consequences. Unlike successful contacts share maximum hitstop. The 5E Combat Lab prototype adds standing/crouching guard, chip, Blockstun, and defender block pushback. The accepted 5F Combat Lab prototype adds an authoritative circular disc arena in horizontal X/Z space, a hurtbox-safe fighter-center margin, committed two-direction orbital Pivot without invulnerability, and a derived local combat axis. The user accepted the physical Pivot, camera hold/recenter, rotating combat plane, and circular arena after the edge correction. Presentation consumes simulation state. High/Low Parry and the GroundRupture geometry experiment are planned for 5G; neither implies a production AoE category, free depth locomotion, combo system, or combat AI.
+**Implemented.** The prototype has a deterministic fixed-60-Hz integer simulation with copyable/restorable match state; grounded walking, dashes, jumps and double jump; Light, Medium, and Heavy grounded normals; startup/active/recovery; simulation 3D hit/hurt volumes; damage, hitstop, hitstun, knockback, and simultaneous trades. Valid grounded 3D overlap is classified transiently as `Hit`, `Block`, or `Parry`, and both directions are classified before consequences. Unlike successful contacts share maximum hitstop; a successful 5G Parry uses its fixed six-frame shared freeze and transfers the attacker into ParryStun. The 5E Combat Lab prototype adds standing/crouching guard, chip, Blockstun, and defender block pushback. The accepted 5F Combat Lab prototype adds an authoritative circular disc arena in horizontal X/Z space, a hurtbox-safe fighter-center margin, committed two-direction orbital Pivot without invulnerability, and a derived local combat axis. The accepted 5G Combat Lab experiment adds committed High/Low Parry and one data-driven GroundRupture move using strict radial geometry. Every current move is a High-Parry target; Low Parry has no matching attack until a Low attack is introduced. Guard height and Parry height are separate move metadata, and existing Low Block assignments remain unchanged. GroundRupture is a prototype geometry experiment, not a semantic AoE category. The user accepted the physical Pivot, camera hold/recenter, rotating combat plane, and circular arena after the edge correction. Presentation consumes simulation state. These prototype values are not final balance; unrestricted depth locomotion, combo system, and combat AI remain out of scope.
 
 ## Combat identity
 
 **Design direction.** This is a modern tactical 2.5D fighter. The arena is conceptually three-dimensional, but most ordinary interaction should read along a focused combat axis, retaining the immediacy and accessibility of a modern 2D fighter. It is not a commitment to unrestricted free-roaming 3D movement or to copying any particular fighter.
 
 Combat should be visually stable and readable, with comparatively low simultaneous-event density and high decision density. Avoid unexplained displacement, excessive side switching, constant overlapping assists or effects, jittery silhouettes, routine very long noninteractive combos, and execution barriers that keep less technical players out of the tactical game. Players should broadly understand an opponent's commitment, available response families, initiative, and why an exchange resolved as it did. The central uncertainty should be what the opponent chooses, not whether one is secretly allowed to act.
+
+**Design principle.** Turn ownership and available opportunities should be legible even when the outcome of a defensive decision is uncertain. Block is a reliable concession, Pivot is a geometric/spatial response, and Parry is a committed height-specific response. Pivotability should emerge from attack/hurt geometry, not per-move dodge permissions. These are accepted prototype principles; values and final production rules remain open. Milestone 5H is an active Combat Lab exploration of how deliberately varied attack geometry interacts with this existing grammar, not a selection of final balance.
 
 ## Bounded optimization and freedom of style
 
@@ -30,7 +32,7 @@ Future attacks may differ in trajectory, coverage, tracking, guard relationship,
 
 ## Defensive grammar
 
-**Design direction.** Block, Pivot/Dodge, and Parry are distinct response families that answer different problems. They are not three power tiers of a single action. Block and Pivot have accepted Combat Lab implementations; High/Low Parry is planned for the 5G prototype and is not final balance.
+**Design direction.** Block, Pivot/Dodge, and Parry are distinct response families that answer different problems. They are not three power tiers of a single action. Block and Pivot have accepted Combat Lab implementations; High/Low Parry has a 5G prototype and is not final balance.
 
 ### Block
 
@@ -42,7 +44,11 @@ Future attacks may differ in trajectory, coverage, tracking, guard relationship,
 
 ### High / Low Parry
 
-**Design direction.** Parry is an active response especially worth testing against broad AoE-style threats that a narrow spatial escape cannot simply solve. High Parry and Low Parry must remain distinct choices: a High Parry is not the correct read for a parryable Low attack, and vice versa. A ground rupture might invite Low Parry; a high burst might invite High Parry. This is not a universal “AoE loses to Parry” rule. **Undecided:** controls, timing, startup, recovery, failure consequences, reward, advantage, and animation.
+**Implemented prototype.** F starts HighParry and G starts LowParry from grounded actionable states. Each commits 14 frames: StateFrame 0–3 are active and 4–13 are recovery. Correctly timed, matching height turns contact into transient `Parry`; wrong height and recovery resolve through the ordinary Hit/Block rules without a fallback guard. A successful Parry deals no defender damage or chip, applies six shared hitstop frames, then sends the attacker into 18 ParryStun frames. The defender returns to actionable neutral after the freeze. Parry does not move or grant generic invulnerability. **Design direction.** High and Low remain distinct timing-and-height reads, with recovery vulnerability distinguishing the risk from reliable concessionary Block and geometric Pivot. **Undecided:** final inputs, timing, consequences, advantage, and animation.
+
+### GroundRupture
+
+**Implemented prototype.** Numpad 6 starts a 18/5/24-frame grounded move with 100 damage, 8 hitstop, 18 hitstun, low Block/Parry metadata, 10 chip, 16 Blockstun, moderate pushback, and a 112-world-unit horizontal circle over Y=0–30 units. Circle-versus-hurtbox contact uses integer nearest-point squared distance and strict `< radius²`, so tangent-only contact misses. Pivot has no special relationship to this move: it is hit when its hurt volume remains inside the actual circle and misses when geometry escapes it. **Design direction.** Broad ground coverage explores a different spatial question from narrow committed normals. **Undecided:** whether this concept remains, final timing, geometry, and balance. It is not a permanent semantic AoE type or a `CannotPivot` rule.
 
 ## Attack geometry and guard relationship
 
@@ -116,7 +122,7 @@ Later prototypes should be compared under similar situations and with both playe
 
 ## Explicitly not yet decided
 
-No final guard rules, chip values, Pivot controls/timing/geometry, depth dimensions, camera behavior, AoE taxonomy, Parry timing or reward, initiative schedule, assist cooldown, tag resource, combo structure, Pulse route, or production animation language is fixed. The 5F Pivot has no invulnerability; later changes to that would require an explicit design decision. The approximate ~20% balancing aim is not an exact rule. A later milestone and playtesting must decide which hypotheses become gameplay.
+No final guard rules, chip values, Pivot controls/timing/geometry, depth dimensions, camera behavior, AoE taxonomy, Parry tuning or rewards, initiative schedule, assist cooldown, tag resource, combo structure, Pulse route, or production animation language is fixed. The 5F Pivot has no invulnerability; later changes to that would require an explicit design decision. The 5G Parry timing/consequences and GroundRupture radius/behavior are Combat Lab values, not final balance or permanent move taxonomy. The approximate ~20% balancing aim is not an exact rule. A later milestone and playtesting must decide which hypotheses become production gameplay.
 
 ## Future combat AI
 

@@ -8,7 +8,8 @@ enum class EFighterInputButton : uint16
     Left = 1 << 0, Right = 1 << 1, Up = 1 << 2, Down = 1 << 3,
     Light = 1 << 4, Medium = 1 << 5, Heavy = 1 << 6, Special = 1 << 7,
     Assist1 = 1 << 8, Assist2 = 1 << 9,
-    PivotPositive = 1 << 10, PivotNegative = 1 << 11
+    PivotPositive = 1 << 10, PivotNegative = 1 << 11,
+    HighParry = 1 << 12, LowParry = 1 << 13, GroundRupture = 1 << 14
 };
 
 // One player's held buttons for exactly one simulation frame. No device polling.
@@ -40,10 +41,12 @@ struct FFighterInputEdges
 };
 
 enum class EFighterFacing : int8 { Left = -1, Right = 1 };
-enum class EMoveId : uint8 { None = 0, Light = 1, Medium = 2, Heavy = 3 };
+enum class EMoveId : uint8 { None = 0, Light = 1, Medium = 2, Heavy = 3, GroundRupture = 4 };
 enum class EMovePhase : uint8 { Startup = 0, Active = 1, Recovery = 2 };
 enum class EGuardHeight : uint8 { High = 0, Low = 1 };
-enum class EPendingReaction : uint8 { None = 0, Hit = 1, Block = 2 };
+enum class EParryHeight : uint8 { None = 0, High = 1, Low = 2 };
+enum class EHitVolumeShape : uint8 { OrientedBox = 0, HorizontalCircle = 1 };
+enum class EPendingReaction : uint8 { None = 0, Hit = 1, Block = 2, Parry = 3 };
 enum class EFighterState : uint8
 {
     Idle,
@@ -57,7 +60,10 @@ enum class EFighterState : uint8
     Attack,
     Hitstun,
     Blockstun,
-    Pivoting
+    Pivoting,
+    Parrying,
+    ParrySuccess,
+    ParryStun
 };
 
 struct FSimBox
@@ -77,6 +83,14 @@ struct FSimOrientedBox
     int32 HalfForward = 0, HalfLateral = 0;
     bool Overlaps(const FSimBox& Other) const;
     FSimBox Bounds() const;
+};
+
+// A vertical interval swept by a horizontal circle. Integer circle/AABB tests
+// use the closest point and strict squared-distance comparison.
+struct FSimRadialVolume
+{
+    int32 CenterX = 0, CenterZ = 0, MinY = 0, MaxY = 0, Radius = 0;
+    bool Overlaps(const FSimBox& Other) const;
 };
 
 // X/Z are the horizontal arena plane; the fighter pair defines the local axis. Y is height.
@@ -110,6 +124,7 @@ struct FFighterState
     int8 DashDirection = 0;
     // Signed orbital direction locked on Pivot entry; zero outside Pivot.
     int8 PivotDirection = 0;
+    EParryHeight ParryHeight = EParryHeight::None;
     // Exact world-space horizontal velocity committed for the pending/current jump.
     int32 CommittedJumpVelocityX = 0;
     int32 CommittedJumpVelocityZ = 0;

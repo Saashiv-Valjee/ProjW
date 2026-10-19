@@ -483,19 +483,32 @@ bool FPivotStressTest::RunTest(const FString&)
     A.Fighter2.PositionX = 50 * Unit;
     FMatchState B = A;
     int32 Positive = 0, Negative = 0, Walk = 0, Dash = 0, Jump = 0, AttackCount = 0, BlockCount = 0;
+    int32 HighParryCount = 0, GroundRuptureCount = 0;
     for (int32 Frame = 0; Frame < 30000; ++Frame)
     {
-        const int32 Phase = Frame % 320;
         FFighterInput P1;
-        if (Phase == 0) P1 = Button(EFighterInputButton::Light);
-        else if (Phase == 30) P1 = Button(EFighterInputButton::PivotPositive);
-        else if (Phase == 60) P1 = Button(EFighterInputButton::PivotNegative);
-        else if ((Phase >= 90 && Phase <= 96) || Phase == 110 || Phase == 112)
-            P1 = Button(EFighterInputButton::Right);
-        else if (Phase == 140) P1 = Button(EFighterInputButton::Up);
-        else if (Phase == 210) P1 = Button(EFighterInputButton::Medium);
-        else if (Phase == 250) P1 = Button(EFighterInputButton::Heavy);
-        const FFighterInput P2 = Phase <= 15 ? Button(EFighterInputButton::Right) : FFighterInput{};
+        FFighterInput P2;
+        if (Frame < 80)
+        {
+            if (Frame == 15) P1 = Button(EFighterInputButton::GroundRupture);
+            else if (Frame == 60) P1 = Button(EFighterInputButton::HighParry);
+            else if (Frame == 70 || Frame == 72) P1 = Button(EFighterInputButton::Right);
+            if (Frame == 0 || Frame == 33) P2 = Button(EFighterInputButton::HighParry);
+            else if (Frame == 50) P2 = Button(EFighterInputButton::Heavy);
+        }
+        else
+        {
+            const int32 Phase = (Frame - 80) % 320;
+            if (Phase == 0) P1 = Button(EFighterInputButton::Light);
+            else if (Phase == 30) P1 = Button(EFighterInputButton::PivotPositive);
+            else if (Phase == 60) P1 = Button(EFighterInputButton::PivotNegative);
+            else if ((Phase >= 90 && Phase <= 96) || Phase == 110 || Phase == 112)
+                P1 = Button(EFighterInputButton::Right);
+            else if (Phase == 140) P1 = Button(EFighterInputButton::Up);
+            else if (Phase == 210) P1 = Button(EFighterInputButton::Medium);
+            else if (Phase == 250) P1 = Button(EFighterInputButton::Heavy);
+            if (Phase <= 15) P2 = Button(EFighterInputButton::Right);
+        }
         Step(A, P1, P2);
         Step(B, P1, P2);
         if (A != B) { AddError(TEXT("mixed 30K diverged")); break; }
@@ -506,6 +519,9 @@ bool FPivotStressTest::RunTest(const FString&)
         Jump += A.Fighter1.CurrentState == EFighterState::Jumping;
         AttackCount += A.Fighter1.CurrentState == EFighterState::Attack;
         BlockCount += A.Fighter2.PendingReaction == EPendingReaction::Block;
+        HighParryCount += A.Fighter1.CurrentState == EFighterState::ParrySuccess
+            || A.Fighter2.CurrentState == EFighterState::ParrySuccess;
+        GroundRuptureCount += A.Fighter1.CurrentMoveId == EMoveId::GroundRupture;
         TestTrue(TEXT("circular bound 1"), Sim::IsInsideArena(A.Fighter1.PositionX, A.Fighter1.PositionZ));
         TestTrue(TEXT("circular bound 2"), Sim::IsInsideArena(A.Fighter2.PositionX, A.Fighter2.PositionZ));
     }
@@ -517,6 +533,8 @@ bool FPivotStressTest::RunTest(const FString&)
     TestTrue(TEXT("jump exercised"), Jump > 0);
     TestTrue(TEXT("normal attacks exercised"), AttackCount > 0);
     TestTrue(TEXT("Block exercised"), BlockCount > 0);
+    TestTrue(TEXT("HighParry exercised"), HighParryCount > 0);
+    TestTrue(TEXT("GroundRupture exercised"), GroundRuptureCount > 0);
     TestTrue(TEXT("stress final states exactly equal"), A == B);
     return !HasAnyErrors();
 }

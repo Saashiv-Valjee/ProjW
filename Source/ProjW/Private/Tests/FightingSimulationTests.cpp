@@ -54,6 +54,7 @@ namespace
         Equal &= Test.TestEqual(TEXT("TapAgeFrames"), A.TapAgeFrames, B.TapAgeFrames);
         Equal &= Test.TestEqual(TEXT("DashDirection"), A.DashDirection, B.DashDirection);
         Equal &= Test.TestEqual(TEXT("PivotDirection"), A.PivotDirection, B.PivotDirection);
+        Equal &= Test.TestEqual(TEXT("ParryHeight"), static_cast<uint8>(A.ParryHeight), static_cast<uint8>(B.ParryHeight));
         Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityX"), A.CommittedJumpVelocityX, B.CommittedJumpVelocityX);
         Equal &= Test.TestEqual(TEXT("CommittedJumpVelocityZ"), A.CommittedJumpVelocityZ, B.CommittedJumpVelocityZ);
         Equal &= Test.TestEqual(TEXT("AttackAxisX"), A.AttackAxisX, B.AttackAxisX);

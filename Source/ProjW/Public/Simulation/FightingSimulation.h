@@ -13,6 +13,8 @@ struct FMoveDefinition
     uint8 HitstunFrames;
     int32 KnockbackSpeed;
     EGuardHeight GuardHeight;
+    // Independent prototype contact taxonomy; not inferred from block rules.
+    EParryHeight ParryHeight;
     int32 ChipDamage;
     uint8 BlockstunFrames;
     int32 BlockPushbackSpeed;
@@ -21,6 +23,8 @@ struct FMoveDefinition
     int32 HitboxHalfWidth;
     int32 HitboxHalfHeight;
     int32 HitboxHalfExtentZ;
+    EHitVolumeShape HitVolumeShape;
+    int32 HitRadius;
 };
 static_assert(std::is_trivially_copyable_v<FMoveDefinition>);
 
@@ -69,12 +73,19 @@ public:
     static constexpr int32 HurtboxHalfWidth = 24 * SubunitsPerWorldUnit;
     static constexpr int32 HurtboxHeight = 100 * SubunitsPerWorldUnit;
     static constexpr int32 HurtboxHalfExtentZ = 5 * SubunitsPerWorldUnit;
+    static constexpr uint8 ParryActiveFrames = 4;
+    static constexpr uint8 ParryRecoveryFrames = 10;
+    static constexpr uint8 ParryTotalFrames = ParryActiveFrames + ParryRecoveryFrames;
+    static constexpr uint8 ParryHitstopFrames = 6;
+    static constexpr uint8 ParryStunFrames = 18;
+    static constexpr int32 GroundRuptureRadius = 112 * SubunitsPerWorldUnit;
 
     // Returns null for None or invalid IDs. Definitions are static and immutable.
     static const FMoveDefinition* FindMoveDefinition(EMoveId MoveId);
     static FSimBox GetHurtbox(const FFighterState& Fighter);
     static bool GetMoveHitbox(const FFighterState& Fighter, FSimBox& OutBox);
     static bool GetMoveHitVolume(const FFighterState& Fighter, FSimOrientedBox& OutBox);
+    static bool GetMoveRadialVolume(const FFighterState& Fighter, FSimRadialVolume& OutVolume);
     // Tests fighter-center legality using the conservative hurtbox footprint
     // margin; the visual arena floor remains ArenaRadius.
     static bool IsInsideArena(int32 X, int32 Z);
